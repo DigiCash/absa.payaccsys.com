@@ -161,7 +161,7 @@ final class StatementsApiClient implements StatementsApiClientInterface
     ): FromArray {
         $request = Http::baseUrl($this->config->baseUrl)
             ->timeout(self::DEFAULT_TIMEOUT_SECONDS)
-            ->withOptions($this->tlsOptions())
+            ->withOptions($this->config->sslOptions())
             ->withHeaders($this->withAuthorization($headers));
 
         if ($this->config->retryAttempts > 1) {
@@ -210,32 +210,6 @@ final class StatementsApiClient implements StatementsApiClientInterface
         }
 
         return array_merge($headers, ['Authorization' => 'Bearer ' . $this->config->apiKey]);
-    }
-
-      /**
-       * mTLS options for `withOptions()`. Emits the Guzzle/curl key names
-       * (`ssl_cert` / `ssl_key` / `ssl_passphrase`) which Laravel's HttpClient
-       * forwards to both the Guzzle and cURL drivers.
-       *
-       * @return array<string, string>
-       */
-    private function tlsOptions(): array
-    {
-        $options = [];
-
-        if ($this->config->certPath !== null) {
-            $options['ssl_cert'] = $this->config->certPath;
-        }
-
-        if ($this->config->keyPath !== null) {
-            $options['ssl_key'] = $this->config->keyPath;
-        }
-
-        if ($this->config->passphrase !== null && isset($options['ssl_key'])) {
-            $options['ssl_passphrase'] = $this->config->passphrase;
-        }
-
-        return $options;
     }
 
       /**

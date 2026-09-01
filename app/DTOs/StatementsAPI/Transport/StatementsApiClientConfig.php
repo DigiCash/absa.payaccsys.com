@@ -42,4 +42,34 @@ final readonly class StatementsApiClientConfig
             retryDelayMs:  isset($data['retry_delay_ms']) ? (int)    $data['retry_delay_ms']  : 250,
         );
     }
+
+    /**
+     * mTLS options for `Http::withOptions()`, using the standard Guzzle option
+     * keys (`cert` / `ssl_key`) which Laravel's HttpClient forwards to both the
+     * Guzzle and cURL drivers (see ADR-003).
+     *
+     * `cert` is emitted as a bare path string when no passphrase is configured,
+     * or as a `[path, passphrase]` pair when one is — the shape Guzzle expects.
+     * `ssl_key` is emitted as a bare path string. When no mTLS material is
+     * configured the result is an empty array, so `withOptions([])` is a no-op.
+     *
+     * @return array<string, string|array{0: string, 1: string}>
+     */
+    public function sslOptions(): array
+    {
+        $options = [];
+
+        if ($this->certPath !== null) {
+            $options['cert'] = $this->passphrase !== null
+                ? [$this->certPath, $this->passphrase]
+                : $this->certPath;
+        }
+
+        if ($this->keyPath !== null) {
+            $options['ssl_key'] = $this->keyPath;
+        }
+
+        return $options;
+    }
+
 }

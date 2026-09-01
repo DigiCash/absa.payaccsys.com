@@ -442,3 +442,106 @@ it('leaves the error body null when a 500 response is not JSON', function () {
 
     expect($exception->error)->toBeNull();
 });
+
+// ---------------------------------------------------------------------------
+// M5: mTLS option mapping + retry behaviour on 5xx / 429
+// ---------------------------------------------------------------------------
+
+/**
+ * A config with transient-failure retries enabled (3 attempts, 1ms backoff)
+ * so the retry path is exercised without slowing the suite.
+ */
+function retryingConfig(): StatementsApiClientConfig
+{
+     return StatementsApiClientConfig::fromConfig([
+           'base_url'        => BASE_URL,
+           'api_key'         => API_KEY,
+           'cert_path'       => '/tmp/certs/client.pem',
+           'key_path'        => '/tmp/certs/client.key',
+           'passphrase'      => 's3cr3t',
+           'retry_attempts' => 3,
+           'retry_delay_ms' => 1,
+       ]);
+}
+
+it('maps the configured mTLS material to the standard Guzzle sslOptions', function () {
+     $cfg = statementsConfig();
+
+     expect($cfg->sslOptions())->toBe([
+           'cert'     => ['/tmp/certs/client.pem', 's3cr3t'],
+           'ssl_key' => '/tmp/certs/client.key',
+       ]);
+});
+
+it('attaches the configured mTLS options and still completes a happy-path request', function () {
+     Http::fake(fn (Request $request) => Http::response(['status' => 'OK'], 200));
+
+      $result = new StatementsApiClient(statementsConfig())
+           ->getHealth(new GetHealthRequestDTO(absaHeaders()));
+
+     expect($result)->toBeInstanceOf(HealthResponseDTO::class);
+     expect($result->status)->toBe('OK');
+
+     Http::assertSent(function (Request $request) {
+          return $request->method() === 'GET'
+                && str_contains($request->url(), '/health')
+                && assertAbsaHeaders($request);
+         });
+});
+
+it('retries a 500 then succeeds on the next attempt', function () {
+     Http::fakeSequence()
+           ->push(errorBody('INTERNAL_ERROR', 'Server error'), 500)
+           ->push(['status' => 'OK'], 200);
+
+      $result = new StatementsApiClient(retryingConfig())
+           ->getHealth(new GetHealthRequestDTO(absaHeaders()));
+
+     expect($result)->toBeInstanceOf(HealthResponseDTO::class);
+     expect($result->status)->toBe('OK');
+     Http::assertSentCount(2);
+});
+
+it('retries a 429 then succeeds on the next attempt', function () {
+     Http::fakeSequence()
+           ->push(errorBody('RATE_LIMITED', 'Too many requests'), 429)
+           ->push(['status' => 'OK'], 200);
+
+      $result = new StatementsApiClient(retryingConfig())
+           ->getHealth(new GetHealthRequestDTO(absaHeaders()));
+
+     expect($result)->toBeInstanceOf(HealthResponseDTO::class);
+     expect($result->status)->toBe('OK');
+     Http::assertSentCount(2);
+});
+
+it('does not retry a non-retriable 4xx (sent exactly once)', function () {
+     Http::fake(fn (Request $request) => Http::response(errorBody('BAD_REQUEST', 'Invalid request'), 400));
+
+     expectStatementsException(
+          fn () => (new StatementsApiClient(retryingConfig()))->getHealth(new GetHealthRequestDTO(absaHeaders())),
+           400,
+          code: 'BAD_REQUEST',
+          message: 'Invalid request',
+           );
+
+     Http::assertSentCount(1);
+});
+
+it('gives up after exhausting retries on a persistent 5xx and throws', function () {
+     Http::fakeSequence()
+           ->push(errorBody('INTERNAL_ERROR', 'Server error'), 500)
+           ->push(errorBody('INTERNAL_ERROR', 'Server error'), 500)
+           ->push(errorBody('INTERNAL_ERROR', 'Server error'), 500);
+
+      $exception = expectStatementsException(
+          fn () => (new StatementsApiClient(retryingConfig()))->getHealth(new GetHealthRequestDTO(absaHeaders())),
+           500,
+          code: 'INTERNAL_ERROR',
+          message: 'Server error',
+           );
+
+     expect($exception->status)->toBe(500);
+     Http::assertSentCount(3);
+});
+
