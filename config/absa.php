@@ -10,6 +10,9 @@ return [
         'passphrase'    => env('ABSA_STATEMENTS_PASSPHRASE'),
         'cert_path'     => env('ABSA_STATEMENTS_CERT_PATH', storage_path('app/certs/absa/statements/client.pem')),
         'key_path'      => env('ABSA_STATEMENTS_SSL_KEY_PATH', storage_path('app/certs/absa/statements/client.key')),
+         'retry_attempts' => (int) env('ABSA_STATEMENTS_RETRY_ATTEMPTS', 3),
+         'retry_delay_ms' => (int) env('ABSA_STATEMENTS_RETRY_DELAY_MS', 250),
+
     ],
 
     // Future placeholders for domain isolation
