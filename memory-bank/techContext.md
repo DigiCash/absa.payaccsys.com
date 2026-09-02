@@ -1,6 +1,6 @@
 # Tech Context — ABSA API Hub
 
-> Technologies, dev setup, constraints, dependencies, tool usage. Last updated: 2026-09-01.
+> Technologies, dev setup, constraints, dependencies, tool usage. Last updated: 2026-09-02.
 
 ## 1. Stack
 - **Framework:** Laravel `^13.17` (`laravel/framework` locked).
@@ -35,9 +35,9 @@
 - Namespace `App\` → `app/` (PSR-4): `App\Http\Controllers`, `App\Models`, `App\Providers`,
   plus custom `App\Support\` and `App\Traits\`.
 - Custom: `app/Support/DatabaseLogProxy.php`, `app/Traits/InteractsWithDatabaseLog.php`.
-- Standard: `app/Http/Controllers/Controller.php` (empty abstract base), `app/Models/User.php`,
-  `app/Providers/AppServiceProvider.php`.
-- **No** `Kernel.php` / `Exceptions/Handler.php` (Laravel 13 `bootstrap/app.php` config style).
+- **Application layer (DRAFT, not yet implemented):** `App\Services\StatementsAPI\OAuth2TokenManager`,
+      `App\Services\StatementsAPI\StatementService`, `App\Http\Middleware\ApiAuditLogger`,
+      `App\Http\Controllers\StatementsAPI\` (Health/Balances/Statements/StatementTransactions).
 - Migrations: `create_users_table`, `create_cache_table`, `create_jobs_table`,
   `create_personal_access_tokens_table`, `create_api_audit_logs`, `add_environment_to_api_audit_logs_table`.
 - Routes (`routes/api.php`): `POST /v1/login` (Sanctum token), `GET /v1/user` (`auth:sanctum`).

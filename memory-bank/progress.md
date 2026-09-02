@@ -23,7 +23,7 @@ transport/support files — per the approved `dto-plan.md` and `client-transport
   Responses, Support) and `tests/Unit/Services/StatementsAPI/` (Config + Client).
 - **Migrations** for `api_audit_logs` (+ environment column) added.
 - **Internal auth** via Sanctum (`/v1/login`, `/v1/user`).
-- Full Pest suite **73/73 (438 assertions)** at M5 (2026-09-01) — verified this session.
+- Full Pest suite **73/73 (438 assertions)** at M6 sign-off (2026-09-01) — verified this session.
 
 ## What's left to build
 - **M5:** ✅ done 2026-09-01 — mTLS `sslOptions()` mapping (standard Guzzle `cert`/`ssl_key`) + retry-on-5xx/429 tests; see ADR-003.

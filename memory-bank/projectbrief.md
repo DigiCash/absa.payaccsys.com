@@ -1,7 +1,7 @@
 # Project Brief — ABSA API Hub (`absa84_api`)
 
 > Foundation document. Source of truth for project scope. Read first, every session.
-> Last updated: 2026-09-01. Phase: Bootstrap / Discovery (Phase 0) → early implementation of the Statements API.
+> Last updated: 2026-09-02. Phase: Bootstrap / Discovery (Phase 0) → transport layer complete; application layer DRAFT.
 
 ## 1. What this project is
 A **Laravel 13 API application** (PHP 8.4, running in Docker) that acts as a **central API hub**
@@ -10,7 +10,7 @@ contract and exposes them to internal consumers (e.g. "Phoenix").
 
 ## 2. Core requirements / goals
 - Integrate three ABSA API capabilities, in priority order:
-  1. **Statements & Transactions API** (active — DTO + transport layer in progress)
+    1. **Statements & Transactions API** (active — DTO + transport layer complete; application layer DRAFT)
   2. **PayShap Request API** (planned, not started)
   3. **Account Verification Service (AVS)** (planned, not started)
 - Provide a **typed, DTO-first** internal contract (no raw arrays crossing domain boundaries).
@@ -34,12 +34,12 @@ contract and exposes them to internal consumers (e.g. "Phoenix").
 7. Agent assumptions — **never promoted silently to requirements**
 
 ## 5. Scope boundaries
-- **In scope now:** Statements API DTOs + HTTP transport layer; planning/governance docs.
-- **Out of scope now:** PayShap, AVS, OAuth2/token acquisition, queue workers, CI pipeline (none exists).
+- **In scope now:** Statements API DTOs + HTTP transport layer (complete); application layer (DRAFT, awaiting approval); planning/governance docs.
+- **Out of scope now:** PayShap, AVS, queue workers, CI pipeline (none exists).
 
 ## 6. Key governing documents
 - `.ai/guidelines/00-project-bootstrap.md` — discovery-phase rules (governs Phase 0).
 - `.clinerules/00..03` — agent workflow, environment, coding standards, hardware budget.
 - `Planning/00_PROJECT_DISCOVERY_PROPOSAL.md` — the Phase 0 proposal (DRAFT, awaiting approval).
 - `Planning/03_APIS/STATEMENTS/dto-plan.md` — **approved** DTO structure (2026-08-26).
-- `Planning/03_APIS/STATEMENTS/client-transport-plan.md` — transport layer plan (M0–M4 done).
+- `Planning/03_APIS/STATEMENTS/client-transport-plan.md` — transport layer plan (M0–M6 done, signed off 2026-09-01).

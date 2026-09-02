@@ -1,7 +1,7 @@
 # System Patterns — ABSA API Hub
 
 > Architecture, key technical decisions, design patterns, component relationships, critical paths.
-> Last updated: 2026-09-01.
+> Last updated: 2026-09-02.
 
 ## 1. High-level architecture
 ```
@@ -10,7 +10,7 @@ Internal consumer
    ▼
 Hub routes (routes/api.php, /v1)
    ▼
-Domain service / controller (future)
+Inbound facade controller + StatementService (DRAFT)
    ▼
 StatementsApiClientInterface  ──►  StatementsApiClient (Illuminate\Http\Client)
    ▲  (typed *RequestDTO)            │  outbound GET: path + query + ABSA headers + mTLS + Bearer
@@ -21,7 +21,8 @@ StatementsApiClientInterface  ──►  StatementsApiClient (Illuminate\Http\Cl
 *ResponseDTO  ◄── decode ──  StatementsApiException (non-2xx, carries ErrorResponseDTO)
 ```
 Callers depend on the **interface**, never on Guzzle/HttpClient. Transport detail is isolated to
-`App\DTOs\StatementsAPI\Transport\`.
+`App\DTOs\StatementsAPI\Transport\`. The application/domain layer (facade controllers,
+`StatementService`, `OAuth2TokenManager`, `ApiAuditLogger`) is **DRAFT — no code written yet**.
 
 ## 2. Domain isolation (anti-premature-abstraction)
 - Each ABSA capability lives in its own namespace: `App\DTOs\StatementsAPI\` (active),
@@ -75,3 +76,24 @@ Callers depend on the **interface**, never on Guzzle/HttpClient. Transport detai
 - `CurrencyCode` = value DTO, not enum (ISO-4217 external list).
 - `SupplementaryData` modelled as empty placeholder DTO to preserve field contract.
 - Binary `File`/file-download endpoints are NOT modelled as JSON (handled outside DTO layer).
+
+## 9. Application / domain layer (DRAFT — not yet implemented)
+The transport layer (M0–M6) is complete and signed off. The application layer (App-M1 → App-M4)
+is a **DRAFT design awaiting approval**; no production code exists yet. Planned components:
+
+- **`OAuth2TokenManager`** — resolves the ABSA OAuth2 client-credentials token and injects it into
+  `StatementsApiClientConfig::apiKey` (Bearer) before each outbound call. Resolves **D1 (Auth)**
+  via **ADR-001**.
+- **`ApiAuditLogger`** — writes audit/trace records to the MySQL logging DB
+  (`mysql_fingo_logs` / `logging.logs`) for inbound facade calls and outbound ABSA calls.
+- **`StatementService`** — orchestrates: resolve token → build `*RequestDTO` → call
+  `StatementsApiClientInterface` → decode `*ResponseDTO` / surface `StatementsApiException`.
+- **Inbound facade controllers** (`App\Http\Controllers\StatementsAPI\`) — thin HTTP adapters over
+  `StatementService`, exposed under `/v1` via `routes/api.php`.
+
+Constraints carried into the application layer:
+- TLS/mTLS posture is fixed by **ADR-003** (resolves **D3 (TLS)**); no new transport decisions.
+- Controllers depend on `StatementService`, which depends on the `StatementsApiClientInterface` —
+  never on Guzzle/HttpClient directly.
+- Audit logging must be hermetic-friendly: `ApiAuditLogger` is injected via an interface so unit
+  tests can substitute a no-op double (zero DB/network overhead under `tests/Unit/`).
