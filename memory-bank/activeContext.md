@@ -51,7 +51,7 @@ application milestones (App-M2 → App-M4) are still a DRAFT blueprint awaiting 
 - **D3 (TLS keys):** RESOLVED (ADR-003, 2026-09-01) — standard Guzzle `cert`/`ssl_key`.
 - **D2 (structure):** RESOLVED — concrete transport stays under `App\DTOs\StatementsAPI\Transport\`;
   test stays at `tests/Unit/Services/StatementsAPI/`.
-- **Application layer:** App-M1 (`OAuth2TokenManager`) implemented + tested (2026-09-03); App-M2 →
+- **Application layer:** App-M1 (`OAuth2TokenManager`) implemented + tested (2026-09-03); App-M2 (`ApiAuditLogger` middleware) also implemented + tested (2026-09-04); App-M3 →
   App-M4 still DRAFT, awaiting developer approval.
 - No CI pipeline exists; gates (G1–G10) enforced by agent + manual review until CI is added.
 
