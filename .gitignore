@@ -5,12 +5,15 @@
 .env.production
 .phpactor.json
 .phpunit.result.cache
+.clineignore
+/.claude
 /.ai
 /.clinerules
 /.codex
 /.cursor/
 /.idea
 /.nova
+/.junie
 /.phpunit.cache
 /.vscode
 /.zed
