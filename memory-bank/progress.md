@@ -6,9 +6,9 @@
 **Phase 0 (Bootstrap/Discovery) → early implementation.** The Phase 0 proposal
 (`Planning/00_PROJECT_DISCOVERY_PROPOSAL.md`) is **DRAFT, awaiting developer approval**.
 The **Statements API DTO + transport layers are 100% complete and signed off**
-(M0–M6 done 2026-09-01), and **App-M1 (`OAuth2TokenManager`) + App-M2 (`ApiAuditLogger`) are now
-implemented + tested** (2026-09-03 / 2026-09-04; full Pest suite **93/93, 529 assertions**;
-`php -l` + Pint clean).
+(M0–M6 done 2026-09-01), and **App-M1 (`OAuth2TokenManager`) + App-M2 (`ApiAuditLogger`) +
+App-M3 (`StatementService`) + App-M4 (inbound facade controllers & routes) are all implemented
++ tested** (2026-09-03 / 2026-09-04; full Pest suite **115/115, 624 assertions**; `php -l` + Pint clean).
 
 ## What works (verified / reported)
 - **Statements DTO layer** — implemented under `app/DTOs/StatementsAPI/` (~40 files):
@@ -36,7 +36,32 @@ implemented + tested** (2026-09-03 / 2026-09-04; full Pest suite **93/93, 529 as
   nested payload redaction incl. `refresh_token`, non-JSON bodies preserved), `app/Jobs/StatementsAPI/RecordApiAuditLog.php`
   (writes **only the real `api_audit_logs` columns** — persistence is sanitized-only). 8 unit tests
   (`AuditLogSanitizerTest`) + 6 feature tests (`ApiAuditLoggerTest`, `Queue::fake()`), 69 assertions.
-  Full suite now **93/93 (529 assertions)**.
+- **App-M3 — `StatementService` (2026-09-04):** `App\Services\StatementsAPI\StatementService`
+  (final, orchestrates the 8 operations; constructor-injects `StatementsApiClientInterface` +
+  `OAuth2TokenManagerInterface`; resolves the bearer token ahead of every call — consumed through the
+  transport's `apiKey` seam per ADR-001; exposes `resolvedToken()`; propagates `StatementsApiException`
+  unchanged). Hermetic double `tests/Unit/DTOs/StatementsAPI/Support/FakeStatementsApiClient.php`
+  (in-memory, zero DB/network, records `called`/`received`). 3 tests (`StatementServiceTest`, 30
+  assertions).
+- **App-M4 — Inbound Facade Controllers & routes (2026-09-04):**
+  `App\Http\Controllers\StatementsAPI\` (`Health`/`Balances`/`Statements`/`StatementTransactions`),
+  Form Requests under `App\Http\Requests\StatementsAPI\` (abstract base merging route params into
+  `validationData()` — required because Laravel 13 no longer auto-merges route params into
+  `validated()`), routes in `routes/statements.php` (Sanctum-protected `api/v1/statements/*`, loaded
+  via `withRouting(then:)` in `bootstrap/app.php`), container bindings for
+  `StatementsApiClientInterface` / `OAuth2TokenManagerInterface` / `StatementService` in
+  `AppServiceProvider`, and typed JSON error envelopes for `StatementsApiException` /
+  `TokenAcquisitionException` in `bootstrap/app.php` (upstream 4xx/5xx mirrored, status 0 →
+  502). Feature tests `tests/Feature/StatementsAPI/*` — 4 Pest files + `Support/FacadeTestSupport`
+  (`StubOAuth2TokenManager` + `wire()`), 19 tests / 65 assertions: 401 unauthenticated,
+  `Sanctum::actingAs` 200 envelopes, outbound `Http::fake()` request/query/header assertions,
+  422 validation, and upstream-error mapping.
+- **App-M4 required fixes during execution:** `phpunit.xml` gained `LOG_CHANNEL=daily` (the literal
+  string `null` is cast to PHP null by Laravel's `env()` so it silently fell back to
+  `.env`'s `log_stack` → `mysql_fingo_logs` writes during exception reporting); a stray
+  `var_dump($e->getMessage(), $e->getTraceAsString()); exit;` debug line injected into
+  `vendor/laravel/framework/.../Exceptions/Handler.php` `reportThrowable()` was removed (it was
+  killing any test that reported an exception). Full suite now **115/115 (624 assertions)**.
 
 ## What's left to build
 - **M5:** ✅ done 2026-09-01 — mTLS `sslOptions()` mapping (standard Guzzle `cert`/`ssl_key`) + retry-on-5xx/429 tests; see ADR-003.
@@ -45,7 +70,8 @@ implemented + tested** (2026-09-03 / 2026-09-04; full Pest suite **93/93, 529 as
   (acquisition + Redis/Cache caching + auto-refresh), with a static `Authorization: Bearer {api_key}`
   fallback for local dev/testing; see ADR-001.
 - **Statements API (Application & Domain Layer)** — App-M1 (`OAuth2TokenManager`) ✅ DONE 2026-09-03;
-  App-M2 (`ApiAuditLogger`) ✅ DONE 2026-09-04; App-M3 → App-M4 📋 DRAFT, **awaiting approval**.
+  App-M2 (`ApiAuditLogger`) ✅ DONE 2026-09-04; App-M3 (`StatementService`) ✅ DONE 2026-09-04;
+  App-M4 (inbound facade controllers & routes) ✅ DONE 2026-09-04. Application layer complete.
   Micro-milestones M1–M4, sequential; each gated by a targeted Pest run before proceeding.
     - **App-M1 — `OAuth2TokenManager` — ✅ DONE 2026-09-03** (ADR-001): `App\Services\StatementsAPI\OAuth2TokenManager`
       (concrete, `final class`) + `Contracts\OAuth2TokenManagerInterface` (`getValidToken(): string`). OAuth2 Client
@@ -60,15 +86,22 @@ implemented + tested** (2026-09-03 / 2026-09-04; full Pest suite **93/93, 529 as
       (`Queue::fake()`, 6 tests). Bug-fix round (2026-09-04): sanitizer UPPERCASE header keys; null-safe payload;
       job writes only real `api_audit_logs` columns (sanitized-only persistence, `environment` included);
       named-arg dispatch; tests use `Request::create()`. 14 tests / 69 assertions; full suite **93/93 (529 assertions)**.
-    - **App-M3 — `StatementService`** (`App\Services\StatementsAPI\StatementService`): consumes
-      `StatementsApiClientInterface` + `OAuth2TokenManagerInterface` (resolves token → injects into
-      `StatementsApiClientConfig::apiKey`); maps response DTOs; handles `StatementsApiException`.
-      Tests `tests/Unit/Services/StatementsAPI/StatementServiceTest.php` + concrete double
-      `tests/Unit/DTOs/StatementsAPI/Support/FakeStatementsApiClient.php` (zero DB/network).
-    - **App-M4 — Inbound Facade Controllers & routes**: `App\Http\Controllers\StatementsAPI\`
-      (`Health`/`Balances`/`Statements`/`StatementTransactions`), Form Requests under
-      `App\Http\Requests\StatementsAPI\`, routes in `routes/statements.php` (Sanctum-protected `/v1/statements/*`).
-      Tests `tests/Feature/StatementsAPI/*` (`Http::fake()` outbound + Sanctum inbound).
+    - **App-M3 — `StatementService` — ✅ DONE 2026-09-04** (`App\Services\StatementsAPI\StatementService`):
+      constructor-injects `StatementsApiClientInterface` + `OAuth2TokenManagerInterface`; resolves token
+      via `getValidToken()` ahead of every call (injected through `StatementsApiClientConfig::apiKey`,
+      ADR-001); maps response DTOs; propagates `StatementsApiException` unchanged. Hermetic double
+      `tests/Unit/DTOs/StatementsAPI/Support/FakeStatementsApiClient.php` (zero DB/network; records
+      `called`/`received`). Tests `tests/Unit/Services/StatementsAPI/StatementServiceTest.php` —
+      3 tests / 30 assertions (token resolution + apiKey injection, all 8 operations' request/response
+      mapping, exception propagation).
+    - **App-M4 — Inbound Facade Controllers & routes — ✅ DONE 2026-09-04** (19 tests / 65 assertions):
+      `App\Http\Controllers\StatementsAPI\` (`Health`/`Balances`/`Statements`/`StatementTransactions`)
+      injecting `StatementService`; Form Requests under `App\Http\Requests\StatementsAPI\` (abstract
+      base + 6 concrete; route params merged into `validationData()` — Laravel 13 no longer does this
+      automatically); routes in `routes/statements.php` (Sanctum-protected `api/v1/statements/*`,
+      loaded via `withRouting(then:)`); `AppServiceProvider` bindings (client, token manager,
+      `StatementService` singleton); `bootstrap/app.php` JSON error envelopes for
+      `StatementsApiException` / `TokenAcquisitionException`. Full suite **115/115 (624 assertions)**.
     - **Config keys** — `config/absa.php` `statements` now defines `oauth_token_url`, `token_cache_key`
       (`absa.statements.oauth_token`), `token_ttl_buffer` (60), `audit_enabled` (true), `audit_queue` (default).
       Still pending: `token_cache_ttl_seconds` (300 fallback) and `redact_keys`
@@ -105,6 +138,16 @@ implemented + tested** (2026-09-03 / 2026-09-04; full Pest suite **93/93, 529 as
    tested; then a bug-fix round (sanitizer UPPERCASE header keys + null-safe payload + `refresh_token`
    redaction; job persists only real `api_audit_logs` columns with sanitized data; named-arg dispatch;
    `Request::create()` in feature tests). Full suite **93/93 (529 assertions)**; `php -l` + Pint clean.
+- **2026-09-04:** App-M3 (`StatementService` + `FakeStatementsApiClient` + `StatementServiceTest`)
+   implemented + tested. Full suite **96/96 (559 assertions)**; `php -l` + Pint clean.
+- **2026-09-04:** App-M4 (facade controllers + Form Requests + `routes/statements.php` + routes/
+   container wiring + error envelopes) implemented + tested. Fixed in passing: Laravel 13
+   `FormRequest::validationData()` does not auto-merge route params (override in
+   `AbstractStatementsRequest`); `phpunit.xml` `LOG_CHANNEL` must be a real channel (`daily`, not the
+   literal string `null` which Laravel casts to PHP null → falls back to `log_stack` → MySQL writes);
+   `Http::fake()` URL patterns don't match query-bearing URLs (`*` suffix needed); removed a stray
+   `var_dump(); exit;` debug line from `vendor/.../Exceptions/Handler.php::reportThrowable()` that
+   killed any test reporting an exception. Full suite **115/115 (624 assertions)**; `php -l` + Pint clean.
 
 ## Guardrails in force (G1–G10, from the proposal)
 G1 no source-doc mutation · G2 no DB write without approval · G3 `.env`/secrets protection ·
