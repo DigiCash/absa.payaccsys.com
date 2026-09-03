@@ -1,6 +1,6 @@
 # Tech Context — ABSA API Hub
 
-> Technologies, dev setup, constraints, dependencies, tool usage. Last updated: 2026-09-02.
+> Technologies, dev setup, constraints, dependencies, tool usage. Last updated: 2026-09-03.
 
 ## 1. Stack
 - **Framework:** Laravel `^13.17` (`laravel/framework` locked).
@@ -35,7 +35,8 @@
 - Namespace `App\` → `app/` (PSR-4): `App\Http\Controllers`, `App\Models`, `App\Providers`,
   plus custom `App\Support\` and `App\Traits\`.
 - Custom: `app/Support/DatabaseLogProxy.php`, `app/Traits/InteractsWithDatabaseLog.php`.
-- **Application layer (DRAFT, not yet implemented):** `App\Services\StatementsAPI\OAuth2TokenManager`,
+- **Application layer:** `App\Services\StatementsAPI\OAuth2TokenManager` +
+      `Contracts\OAuth2TokenManagerInterface` — **DONE (2026-09-03)**. Still DRAFT:
       `App\Services\StatementsAPI\StatementService`, `App\Http\Middleware\ApiAuditLogger`,
       `App\Http\Controllers\StatementsAPI\` (Health/Balances/Statements/StatementTransactions).
 - Migrations: `create_users_table`, `create_cache_table`, `create_jobs_table`,
@@ -56,3 +57,9 @@
 - `.env` is gitignored; never log secrets/PII in plaintext.
 - External ABSA source docs are read-only; only `Planning/03_APIS/` is writable for derived specs.
 - Context budget: do not load large binary docs (.pdf/.docx) or full raw dir listings into context.
+- **Pest helper-function collision:** top-level `function` helpers in a test file are namespace-scoped;
+  a duplicate name across two files in the same namespace (`Tests\Unit\Services\StatementsAPI`) triggers
+  `Cannot redeclare function` when the full suite loads both. Keep helper names unique per namespace.
+- **Laravel 13.25 removed `Cache::fake()`.** Hermetic cache tests use the test env's `CACHE_STORE=array`
+  (phpunit.xml) for a fresh in-memory store per test.
+- **`Request::body()` (not `Request::content()`)** asserts form-encoded request data under `Http::fake()`.

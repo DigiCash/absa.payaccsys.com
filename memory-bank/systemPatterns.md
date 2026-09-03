@@ -1,7 +1,7 @@
 # System Patterns — ABSA API Hub
 
 > Architecture, key technical decisions, design patterns, component relationships, critical paths.
-> Last updated: 2026-09-02.
+> Last updated: 2026-09-03.
 
 ## 1. High-level architecture
 ```
@@ -21,8 +21,9 @@ StatementsApiClientInterface  ──►  StatementsApiClient (Illuminate\Http\Cl
 *ResponseDTO  ◄── decode ──  StatementsApiException (non-2xx, carries ErrorResponseDTO)
 ```
 Callers depend on the **interface**, never on Guzzle/HttpClient. Transport detail is isolated to
-`App\DTOs\StatementsAPI\Transport\`. The application/domain layer (facade controllers,
-`StatementService`, `OAuth2TokenManager`, `ApiAuditLogger`) is **DRAFT — no code written yet**.
+`App\DTOs\StatementsAPI\Transport\`. The application/domain layer is **partially built**:
+`OAuth2TokenManager` is implemented + tested (2026-09-03); the remaining components (facade
+controllers, `StatementService`, `ApiAuditLogger`) are **DRAFT — no code written yet**.
 
 ## 2. Domain isolation (anti-premature-abstraction)
 - Each ABSA capability lives in its own namespace: `App\DTOs\StatementsAPI\` (active),
@@ -77,13 +78,16 @@ Callers depend on the **interface**, never on Guzzle/HttpClient. Transport detai
 - `SupplementaryData` modelled as empty placeholder DTO to preserve field contract.
 - Binary `File`/file-download endpoints are NOT modelled as JSON (handled outside DTO layer).
 
-## 9. Application / domain layer (DRAFT — not yet implemented)
-The transport layer (M0–M6) is complete and signed off. The application layer (App-M1 → App-M4)
-is a **DRAFT design awaiting approval**; no production code exists yet. Planned components:
+## 9. Application / domain layer (App-M1 done; App-M2 → App-M4 DRAFT)
+The transport layer (M0–M6) is complete and signed off. **App-M1 (`OAuth2TokenManager`) is
+implemented + tested (2026-09-03)**; App-M2 → App-M4 remain a **DRAFT design awaiting approval**.
+Components:
 
-- **`OAuth2TokenManager`** — resolves the ABSA OAuth2 client-credentials token and injects it into
-  `StatementsApiClientConfig::apiKey` (Bearer) before each outbound call. Resolves **D1 (Auth)**
-  via **ADR-001**.
+- **`OAuth2TokenManager` — ✅ DONE (2026-09-03)** — `App\Services\StatementsAPI\OAuth2TokenManager`
+  (concrete) + `Contracts\OAuth2TokenManagerInterface` (`getValidToken(): string`). Resolves the ABSA
+  OAuth2 client-credentials token (cached in Cache for `expires_in - token_ttl_buffer`, floored at 0)
+  with a static `api_key` fallback; non-2xx/undecodable/no-credential → `TokenAcquisitionException`.
+  Resolves **D1 (Auth)** via **ADR-001**.
 - **`ApiAuditLogger`** — writes audit/trace records to the MySQL logging DB
   (`mysql_fingo_logs` / `logging.logs`) for inbound facade calls and outbound ABSA calls.
 - **`StatementService`** — orchestrates: resolve token → build `*RequestDTO` → call

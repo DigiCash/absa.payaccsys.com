@@ -1,13 +1,13 @@
 # Progress — ABSA API Hub
 
-> What works, what's left, current status, known issues, decision evolution. Last updated: 2026-09-02.
+> What works, what's left, current status, known issues, decision evolution. Last updated: 2026-09-03.
 
 ## Overall status
 **Phase 0 (Bootstrap/Discovery) → early implementation.** The Phase 0 proposal
 (`Planning/00_PROJECT_DISCOVERY_PROPOSAL.md`) is **DRAFT, awaiting developer approval**.
-Despite that, the **Statements API DTO + transport layers are 100% complete and signed off**
-(M0–M6 done 2026-09-01; full Pest suite 73/73, 438 assertions; `php -l` clean on all
-transport/support files — per the approved `dto-plan.md` and `client-transport-plan.md`).
+The **Statements API DTO + transport layers are 100% complete and signed off**
+(M0–M6 done 2026-09-01), and **App-M1 (`OAuth2TokenManager`) is now implemented + tested**
+(2026-09-03; full Pest suite **79/79, 460 assertions**; `php -l` + Pint clean).
 
 ## What works (verified / reported)
 - **Statements DTO layer** — implemented under `app/DTOs/StatementsAPI/` (~40 files):
@@ -24,6 +24,12 @@ transport/support files — per the approved `dto-plan.md` and `client-transport
 - **Migrations** for `api_audit_logs` (+ environment column) added.
 - **Internal auth** via Sanctum (`/v1/login`, `/v1/user`).
 - Full Pest suite **73/73 (438 assertions)** at M6 sign-off (2026-09-01) — verified this session.
+- **App-M1 — `OAuth2TokenManager` (2026-09-03):** `App\Services\StatementsAPI\OAuth2TokenManager`
+  (concrete, `final class`) + `Contracts\OAuth2TokenManagerInterface` (`getValidToken(): string`),
+  `Responses/OAuth/OAuthTokenResponseDTO`, `Transport/TokenAcquisitionException`. OAuth2 Client
+  Credentials grant + Cache caching (`expires_in - token_ttl_buffer`, floored at 0) + static `api_key`
+  fallback (ADR-001). 6 hermetic tests (`OAuth2TokenManagerTest`, 22 assertions). Full suite now
+  **79/79 (460 assertions)**.
 
 ## What's left to build
 - **M5:** ✅ done 2026-09-01 — mTLS `sslOptions()` mapping (standard Guzzle `cert`/`ssl_key`) + retry-on-5xx/429 tests; see ADR-003.
@@ -31,15 +37,14 @@ transport/support files — per the approved `dto-plan.md` and `client-transport
 - **D1 (auth):** ✅ resolved 2026-09-01 — OAuth 2.0 Client Credentials Grant via `OAuth2TokenManager`
   (acquisition + Redis/Cache caching + auto-refresh), with a static `Authorization: Bearer {api_key}`
   fallback for local dev/testing; see ADR-001.
-- **Statements API (Application & Domain Layer)** — 📋 DRAFT blueprint 2026-09-02, **awaiting approval** (no code written yet).
+- **Statements API (Application & Domain Layer)** — App-M1 (`OAuth2TokenManager`) ✅ DONE 2026-09-03; App-M2 → App-M4 📋 DRAFT, **awaiting approval**.
   Micro-milestones M1–M4, sequential; each gated by a targeted Pest run before proceeding.
-    - **App-M1 — `OAuth2TokenManager`** (ADR-001): contract `App\Services\StatementsAPI\Contracts\OAuth2TokenManagerInterface`
-      (`resolveToken(): string`) + concrete `App\Services\StatementsAPI\OAuth2TokenManager`. OAuth2 Client Credentials
-      Grant at `config('absa.statements.oauth_token_url')` (default `https://mtls.auth.absaaccess.co.za/oauth2/token`);
-      token + expiry cached in Redis/Cache; proactive refresh within `token_ttl_buffer` (default 60s);
-      **static `api_key` fallback** when `client_id`/`client_secret` absent. New DTO `Responses/OAuth/OAuthTokenResponseDTO`.
-      Tests `tests/Unit/Services/StatementsAPI/OAuth2TokenManagerTest.php` (`Cache::fake()` + `Http::fake()`:
-      cache-miss acquire / cache-hit no-call / within-buffer refresh / static-key fallback / endpoint failure).
+    - **App-M1 — `OAuth2TokenManager` — ✅ DONE 2026-09-03** (ADR-001): `App\Services\StatementsAPI\OAuth2TokenManager`
+      (concrete, `final class`) + `Contracts\OAuth2TokenManagerInterface` (`getValidToken(): string`). OAuth2 Client
+      Credentials grant + Cache caching (`expires_in - token_ttl_buffer`, floored at 0) + static `api_key` fallback;
+      non-2xx / undecodable / no-credential → `TokenAcquisitionException` (status + decoded `ErrorResponseDTO`).
+      New DTO `Responses/OAuth/OAuthTokenResponseDTO` + `Transport/TokenAcquisitionException`. 6 hermetic tests
+      (`OAuth2TokenManagerTest`, 22 assertions; `Http::fake()` + `CACHE_STORE=array` — `Cache::fake()` removed in L13.25).
     - **App-M2 — `ApiAuditLogger` middleware** (`App\Http\Middleware\ApiAuditLogger`): sanitize payload/headers
       (redact Bearer/secrets via pure `App\Services\StatementsAPI\Support\AuditLogSanitizer`); async capture to
       `api_audit_logs` via queued `App\Jobs\StatementsAPI\RecordApiAuditLog`. Tests: `AuditLogSanitizerTest`
@@ -83,6 +88,8 @@ transport/support files — per the approved `dto-plan.md` and `client-transport
   `tests/Unit/Services/StatementsAPI/`.
 - **D3 RESOLVED** (ADR-003, standard Guzzle `cert`/`ssl_key`); **D1 RESOLVED** (ADR-001, OAuth 2.0
    Client Credentials Grant via `OAuth2TokenManager` + static-key fallback, 2026-09-01).
+- **2026-09-03:** App-M1 (`OAuth2TokenManager`) implemented + tested; full suite 79/79 (460 assertions).
+   Fixed `errorBody()` helper collision (renamed `oauthErrorBody` in `OAuth2TokenManagerTest`).
 
 ## Guardrails in force (G1–G10, from the proposal)
 G1 no source-doc mutation · G2 no DB write without approval · G3 `.env`/secrets protection ·
