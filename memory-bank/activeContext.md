@@ -1,7 +1,7 @@
 # Active Context — ABSA API Hub
 
 > Current focus, recent changes, next steps, open decisions. Update after significant changes.
-> Last updated: 2026-09-03.
+> Last updated: 2026-09-04.
 
 ## Current focus
 **Statements API — Application & Domain layer.** The DTO + transport layers are **100% complete and
@@ -28,18 +28,27 @@ application milestones (App-M2 → App-M4) are still a DRAFT blueprint awaiting 
 - 2026-09-02: Application-layer DRAFT blueprint drafted (App-M1–M4); **awaiting approval**.
   `config/absa.php` `statements` gained `oauth_token_url`, `token_cache_key`, `token_ttl_buffer`,
   `audit_enabled`, `audit_queue`.
-- 2026-09-03: **App-M1 (`OAuth2TokenManager`) implemented + tested.** Concrete manager + interface
-   (`getValidToken(): string`), `OAuthTokenResponseDTO`, `TokenAcquisitionException`. 6 hermetic tests
-   (`OAuth2TokenManagerTest`, 22 assertions). Full suite **79/79 (460 assertions)**. Fixed an
-   `errorBody()` helper collision with `StatementsApiClientTest` (renamed to `oauthErrorBody`).
+- 2026-09-04: **App-M2 (`ApiAuditLogger` middleware + `AuditLogSanitizer` + queued `RecordApiAuditLog`)
+  implemented + tested.** Feature test (`ApiAuditLoggerTest`, 6 tests) + unit test
+  (`AuditLogSanitizerTest`, 8 tests), 69 assertions. Bug-fix round: sanitizer UPPERCASE header keys,
+  null-safe payload, job persists only real `api_audit_logs` columns (sanitized + `environment`),
+  named-arg dispatch, `Request::create()` in tests. Full suite **93/93 (529 assertions)**.
+- 2026-09-04: **App-M2 (`ApiAuditLogger` middleware + `AuditLogSanitizer` + queued `RecordApiAuditLog`)
+   implemented + tested.** Feature test (`ApiAuditLoggerTest`, 6 tests) + unit test
+   (`AuditLogSanitizerTest`, 8 tests), 69 assertions. Bug-fix round: UPPERCASE header-key redaction,
+   null-safe payloads, job persists only real `api_audit_logs` columns with sanitized data (incl.
+   `environment`), named-arg dispatch, `Request::create()` in tests. Full suite **93/93 (529 assertions)**.
 
 ## Next steps (ordered)
 1. **App-M1 — `OAuth2TokenManager` — DONE** (2026-09-03): OAuth2 Client Credentials Grant + Cache
    caching + auto-refresh; static `api_key` fallback (ADR-001). `OAuthTokenResponseDTO` +
      `TokenAcquisitionException` added; 6 hermetic tests.
-2. **Get approval** for the remaining application-layer DRAFT (App-M2 → App-M4), then execute
-   sequentially, each gated by a targeted Pest run.
-3. **App-M2 — `ApiAuditLogger` middleware** + `AuditLogSanitizer` + queued `RecordApiAuditLog`.
+2. **App-M2 — `ApiAuditLogger` middleware — DONE** (2026-09-04): `AuditLogSanitizer` + queued
+   `RecordApiAuditLog`. FIX round: UPPERCASE key redaction, null-safe payload, job persists only
+   real `api_audit_logs` columns (sanitized + `environment`), named-arg dispatch. 14 tests (69 assertions).
+3. **App-M3 — `StatementService`** (consumes `StatementsApiClientInterface` +
+   `OAuth2TokenManagerInterface`); gate on targeted Pest run, then **App-M4 — inbound facade
+   controllers + `routes/statements.php`**.
 4. **App-M3 — `StatementService`** (consumes `StatementsApiClientInterface` +
    `OAuth2TokenManagerInterface`); **App-M4 — inbound facade controllers + `routes/statements.php`**.
 5. After Statements application layer: begin **PayShap** then **AVS** (each: spec → DTOs → transport).
@@ -75,9 +84,21 @@ application milestones (App-M2 → App-M4) are still a DRAFT blueprint awaiting 
 - `config('absa.statements')` is the config seam (not bare `config('absa')`).
 - `retry_attempts`/`retry_delay_ms` were deferred from M1 to M2/M5 (now implemented in M5).
 - `.agents/skills/` tree is inconsistent/partially broken — remediation required before Phase 1 QA role.
-- **Application layer: App-M1 (`OAuth2TokenManager`) is implemented + tested (2026-09-03);
-   App-M2 → App-M4 remain DRAFT, awaiting developer approval.**
+- **Application layer: App-M1 (`OAuth2TokenManager`) + App-M2 (`ApiAuditLogger` middleware) are
+  implemented + tested (2026-09-03 / 2026-09-04); App-M3 → App-M4 remain DRAFT, awaiting developer
+  approval.**
 - **OAuth2 config keys** (`oauth_token_url`, `token_cache_key`, `token_ttl_buffer`, `audit_enabled`,
+- **Audit redaction keys are case-insensitive and recursive:** `AuditLogSanitizer` keeps header keys
+  UPPERCASE in output so downstream comparisons are deterministic; payload redaction covers
+  `refresh_token` and stops redacting bare `key` (too broad — breaks legit data).
+- **Job `handle()` must match the real `api_audit_logs` columns.** The `api_audit_logs` migration has
+  NO `sanitized_request` / `sanitized_response` / `ip_address` / `user_agent` columns — map only
+  sanitized data into the real columns (`request_headers`, `request_payload`, `response_payload`,
+  `environment`, etc.) or the insert fails on a real DB.
+- **Middleware → job dispatch must match the constructor arity/order:** named arguments prevent
+  silent positional misalignment (e.g. method landing in `direction`).
+- **Feature tests on middleware should build requests with `Request::create('/path')`** — a bare
+  `new Request()` yields `fullUrl() === 'http://:'`, which breaks endpoint assertions.
   `audit_queue`) added to `config/absa.php`; `token_cache_ttl_seconds`/`redact_keys` still to wire.
 - **Pest helper-function collision:** top-level `function` helpers in a test file are namespace-scoped
    (`Tests\Unit\Services\StatementsAPI`); a duplicate name across two files in the same namespace

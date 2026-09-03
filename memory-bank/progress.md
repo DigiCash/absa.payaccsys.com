@@ -1,13 +1,14 @@
 # Progress — ABSA API Hub
 
-> What works, what's left, current status, known issues, decision evolution. Last updated: 2026-09-03.
+> What works, what's left, current status, known issues, decision evolution. Last updated: 2026-09-04.
 
 ## Overall status
 **Phase 0 (Bootstrap/Discovery) → early implementation.** The Phase 0 proposal
 (`Planning/00_PROJECT_DISCOVERY_PROPOSAL.md`) is **DRAFT, awaiting developer approval**.
 The **Statements API DTO + transport layers are 100% complete and signed off**
-(M0–M6 done 2026-09-01), and **App-M1 (`OAuth2TokenManager`) is now implemented + tested**
-(2026-09-03; full Pest suite **79/79, 460 assertions**; `php -l` + Pint clean).
+(M0–M6 done 2026-09-01), and **App-M1 (`OAuth2TokenManager`) + App-M2 (`ApiAuditLogger`) are now
+implemented + tested** (2026-09-03 / 2026-09-04; full Pest suite **93/93, 529 assertions**;
+`php -l` + Pint clean).
 
 ## What works (verified / reported)
 - **Statements DTO layer** — implemented under `app/DTOs/StatementsAPI/` (~40 files):
@@ -28,8 +29,14 @@ The **Statements API DTO + transport layers are 100% complete and signed off**
   (concrete, `final class`) + `Contracts\OAuth2TokenManagerInterface` (`getValidToken(): string`),
   `Responses/OAuth/OAuthTokenResponseDTO`, `Transport/TokenAcquisitionException`. OAuth2 Client
   Credentials grant + Cache caching (`expires_in - token_ttl_buffer`, floored at 0) + static `api_key`
-  fallback (ADR-001). 6 hermetic tests (`OAuth2TokenManagerTest`, 22 assertions). Full suite now
-  **79/79 (460 assertions)**.
+  fallback (ADR-001). 6 hermetic tests (`OAuth2TokenManagerTest`, 22 assertions).
+- **App-M2 — `ApiAuditLogger` + `AuditLogSanitizer` + `RecordApiAuditLog` (2026-09-04):**
+  `app/Http/Middleware/ApiAuditLogger.php` (middleware, dispatches a queued job with named args),
+  `app/Services/StatementsAPI/Support/AuditLogSanitizer.php` (pure redaction: UPPERCASE header keys,
+  nested payload redaction incl. `refresh_token`, non-JSON bodies preserved), `app/Jobs/StatementsAPI/RecordApiAuditLog.php`
+  (writes **only the real `api_audit_logs` columns** — persistence is sanitized-only). 8 unit tests
+  (`AuditLogSanitizerTest`) + 6 feature tests (`ApiAuditLoggerTest`, `Queue::fake()`), 69 assertions.
+  Full suite now **93/93 (529 assertions)**.
 
 ## What's left to build
 - **M5:** ✅ done 2026-09-01 — mTLS `sslOptions()` mapping (standard Guzzle `cert`/`ssl_key`) + retry-on-5xx/429 tests; see ADR-003.
@@ -37,7 +44,8 @@ The **Statements API DTO + transport layers are 100% complete and signed off**
 - **D1 (auth):** ✅ resolved 2026-09-01 — OAuth 2.0 Client Credentials Grant via `OAuth2TokenManager`
   (acquisition + Redis/Cache caching + auto-refresh), with a static `Authorization: Bearer {api_key}`
   fallback for local dev/testing; see ADR-001.
-- **Statements API (Application & Domain Layer)** — App-M1 (`OAuth2TokenManager`) ✅ DONE 2026-09-03; App-M2 → App-M4 📋 DRAFT, **awaiting approval**.
+- **Statements API (Application & Domain Layer)** — App-M1 (`OAuth2TokenManager`) ✅ DONE 2026-09-03;
+  App-M2 (`ApiAuditLogger`) ✅ DONE 2026-09-04; App-M3 → App-M4 📋 DRAFT, **awaiting approval**.
   Micro-milestones M1–M4, sequential; each gated by a targeted Pest run before proceeding.
     - **App-M1 — `OAuth2TokenManager` — ✅ DONE 2026-09-03** (ADR-001): `App\Services\StatementsAPI\OAuth2TokenManager`
       (concrete, `final class`) + `Contracts\OAuth2TokenManagerInterface` (`getValidToken(): string`). OAuth2 Client
@@ -90,6 +98,10 @@ The **Statements API DTO + transport layers are 100% complete and signed off**
    Client Credentials Grant via `OAuth2TokenManager` + static-key fallback, 2026-09-01).
 - **2026-09-03:** App-M1 (`OAuth2TokenManager`) implemented + tested; full suite 79/79 (460 assertions).
    Fixed `errorBody()` helper collision (renamed `oauthErrorBody` in `OAuth2TokenManagerTest`).
+- **2026-09-04:** App-M2 (`ApiAuditLogger` + `AuditLogSanitizer` + `RecordApiAuditLog`) implemented +
+   tested; then a bug-fix round (sanitizer UPPERCASE header keys + null-safe payload + `refresh_token`
+   redaction; job persists only real `api_audit_logs` columns with sanitized data; named-arg dispatch;
+   `Request::create()` in feature tests). Full suite **93/93 (529 assertions)**; `php -l` + Pint clean.
 
 ## Guardrails in force (G1–G10, from the proposal)
 G1 no source-doc mutation · G2 no DB write without approval · G3 `.env`/secrets protection ·
