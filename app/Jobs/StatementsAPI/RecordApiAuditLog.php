@@ -2,21 +2,20 @@
 
 namespace App\Jobs\StatementsAPI;
 
-use App\DTOs\StatementsAPI\Transport\TokenAcquisitionException;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
-use Illuminate\Database\ConnectionResolverInterface;
-use Illuminate\DatabaseEloquentModel;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * Job that records audit log entries to the api_audit_logs table.
  * This job is dispatched asynchronously from ApiAuditLogger middleware.
  */
-class RecordApiAuditLog implements ShouldQueue, ShouldBeUnique
+class RecordApiAuditLog implements ShouldBeUnique, ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
@@ -145,26 +144,24 @@ class RecordApiAuditLog implements ShouldQueue, ShouldBeUnique
      */
     public function handle(): void
     {
-        // Use the application DB connection (PostgreSQL) for audit logs
-        $connection = app(ConnectionResolverInterface::class)->connection('pgsql_main');
-
-        $connection->table('api_audit_logs')->insert([
-            'id' => (string) \\Str::uuid(),
+        // The API audit log lives on the application PostgreSQL connection.
+        DB::connection('pgsql_main')->table('api_audit_logs')->insert([
+            'id' => (string) Str::uuid(),
             'correlation_id' => $this->correlationId,
             'direction' => $this->direction,
             'service' => $this->service,
             'method' => $this->method,
             'endpoint' => $this->endpoint,
-            'request_headers' => json_encode($this->requestHeaders),
-            'request_payload' => json_encode($this->requestPayload),
+            // Only sanitized data is persisted (secrets/PII already redacted).
+            'request_headers' => json_encode($this->sanitizedRequest['headers'] ?? []),
+            'request_payload' => json_encode($this->sanitizedRequest['payload'] ?? []),
             'response_status' => $this->responseStatus,
-            'response_payload' => json_encode($this->responsePayload),
+            'response_payload' => isset($this->sanitizedResponse['body'])
+                ? json_encode($this->sanitizedResponse['body'])
+                : null,
             'latency_ms' => $this->latencyMs,
             'exception_details' => json_encode($this->exceptionDetails),
-            'sanitized_request' => json_encode($this->sanitizedRequest),
-            'sanitized_response' => json_encode($this->sanitizedResponse),
-            'ip_address' => $this->ipAddress,
-            'user_agent' => $this->userAgent,
+            'environment' => (string) config('absa.environment', 'sandbox'),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -173,7 +170,7 @@ class RecordApiAuditLog implements ShouldQueue, ShouldBeUnique
     /**
      * Get the unique ID for this job.
      */
-    public function uniqueId(): string
+    public function uniqueId(): ?string
     {
         return $this->uniqueId;
     }

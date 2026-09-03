@@ -21,11 +21,11 @@ class ApiAuditLoggerTest extends TestCase
     {
         Queue::fake();
 
-        $middleware = new ApiAuditLogger();
-        $request = new Request();
+        $middleware = new ApiAuditLogger;
+        $request = Request::create('/health');
+        $request->request->replace(['api_key' => 'sensitive']);
         $request->headers->set('X-Request-ID', 'test-request-123');
         $request->headers->set('Authorization', 'Bearer token');
-        $request->request->replace(['api_key' => 'sensitive']);
 
         $response = new Response('OK', 200);
 
@@ -38,9 +38,9 @@ class ApiAuditLoggerTest extends TestCase
         Queue::assertPushed(RecordApiAuditLog::class, function ($job) {
             expect($job->correlationId)->toBe('test-request-123');
             expect($job->method)->toBe('GET');
-            expect($job->endpoint)->toBe('/');
+            expect($job->endpoint)->toBe('http://localhost/health');
             expect($job->responseStatus)->toBe(200);
-            expect($job->requestHeaders)->toBe(['authorization' => ['Bearer token']]);
+            expect($job->requestHeaders['authorization'])->toBe(['Bearer token']);
             expect($job->requestPayload)->toBe(['api_key' => 'sensitive']);
             // Check that sensitive fields are redacted in the sanitized request
             expect($job->sanitizedRequest['headers']['AUTHORIZATION'])->toBe(['***REDACTED***']);
@@ -57,7 +57,7 @@ class ApiAuditLoggerTest extends TestCase
     {
         // This test assumes a future implementation of audit_enabled flag
         // For now, just verify that the middleware exists and can be instantiated
-        $middleware = new ApiAuditLogger();
+        $middleware = new ApiAuditLogger;
 
         expect($middleware)->toBeInstanceOf(ApiAuditLogger::class);
     }
@@ -69,11 +69,11 @@ class ApiAuditLoggerTest extends TestCase
     {
         Queue::fake();
 
-        $middleware = new ApiAuditLogger();
-        $request = new Request();
+        $middleware = new ApiAuditLogger;
+        $request = Request::create('/health');
+        $request->request->replace(['data' => 'public']);
         $request->headers->set('X-Request-ID', 'clean-request-456');
         $request->headers->set('Content-Type', 'application/json');
-        $request->request->replace(['data' => 'public']);
 
         $response = new Response('OK', 200);
 
@@ -86,8 +86,8 @@ class ApiAuditLoggerTest extends TestCase
             expect($job->correlationId)->toBe('clean-request-456');
             expect($job->requestPayload)->toBe(['data' => 'public']);
 
-            // Headers should not be redacted (no sensitive keys)
-            expect($job->sanitizedRequest['headers']['content-type'])->toBe(['application/json']);
+            // Headers should not be redacted (no sensitive keys); sanitized keys are UPPERCASE
+            expect($job->sanitizedRequest['headers']['CONTENT-TYPE'])->toBe(['application/json']);
 
             return true;
         });
@@ -100,8 +100,8 @@ class ApiAuditLoggerTest extends TestCase
     {
         Queue::fake();
 
-        $middleware = new ApiAuditLogger();
-        $request = new Request();
+        $middleware = new ApiAuditLogger;
+        $request = Request::create('/missing');
         $request->headers->set('X-Request-ID', 'error-request-789');
 
         $response = new Response('Not Found', 404);
@@ -127,11 +127,11 @@ class ApiAuditLoggerTest extends TestCase
     {
         Queue::fake();
 
-        $middleware = new ApiAuditLogger();
-        $request = new Request();
+        $middleware = new ApiAuditLogger;
+        $request = Request::create('/health');
+        $request->request->replace(['timestamp' => now()->toISOString()]);
         $request->headers->set('X-Request-ID', 'preserve-request-999');
         $request->headers->set('X-Correlation-ID', 'corr-123');
-        $request->request->replace(['timestamp' => now()->toISOString()]);
 
         $response = new Response('Success', 200);
 
@@ -142,10 +142,8 @@ class ApiAuditLoggerTest extends TestCase
         Queue::assertPushed(RecordApiAuditLog::class, function ($job) {
             // The correlation ID should match what's in the request
             expect($job->correlationId)->toBe('preserve-request-999');
-            expect($job->requestHeaders)->toBe([
-                'x-request-id' => ['preserve-request-999'],
-                'x-correlation-id' => ['corr-123'],
-            ]);
+            expect($job->requestHeaders['x-request-id'])->toBe(['preserve-request-999']);
+            expect($job->requestHeaders['x-correlation-id'])->toBe(['corr-123']);
 
             return true;
         });
@@ -158,12 +156,12 @@ class ApiAuditLoggerTest extends TestCase
     {
         Queue::fake();
 
-        $middleware = new ApiAuditLogger();
+        $middleware = new ApiAuditLogger;
 
-        $request1 = new Request();
+        $request1 = new Request;
         $request1->headers->set('X-Request-ID', 'req-1');
 
-        $request2 = new Request();
+        $request2 = new Request;
         $request2->headers->set('X-Request-ID', 'req-2');
 
         $response = new Response('OK', 200);
@@ -175,8 +173,9 @@ class ApiAuditLoggerTest extends TestCase
         Queue::assertPushed(RecordApiAuditLog::class, 2);
 
         // Verify both jobs were created with correct correlation IDs
-        Queue::assertPushed(RecordApiAuditLog::class, function ($job) use ($middleware) {
+        Queue::assertPushed(RecordApiAuditLog::class, function ($job) {
             expect(in_array($job->correlationId, ['req-1', 'req-2']))->toBe(true);
+
             return true;
         }, 2);
     }

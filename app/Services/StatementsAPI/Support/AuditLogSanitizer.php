@@ -2,8 +2,6 @@
 
 namespace App\Services\StatementsAPI\Support;
 
-use App\DTOs\StatementsAPI\Transport\TokenAcquisitionException;
-use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 
 /**
@@ -12,17 +10,37 @@ use Illuminate\Http\Response;
  */
 class AuditLogSanitizer
 {
+    /** Header names that must never be persisted in an audit row. */
+    private const array SENSITIVE_HEADERS = [
+        'AUTHORIZATION',
+        'API_KEY',
+        'X-API-KEY',
+        'X-SECRET',
+        'CLIENT_SECRET',
+        'PASSWORD',
+        'TOKEN',
+    ];
+
+    /** Payload keys that must never be persisted in an audit row. */
+    private const array SENSITIVE_PAYLOAD_KEYS = [
+        'api_key',
+        'client_secret',
+        'password',
+        'token',
+        'refresh_token',
+        'bearer',
+        'authorization',
+        'secret',
+    ];
+
     /**
      * Sanitize request headers and payload, removing sensitive fields.
      */
-    public function sanitize(array $headers, array $payload): array
+    public function sanitize(array $headers, ?array $payload): array
     {
-        $sanitizedHeaders = $this->sanitizeHeaders($headers);
-        $sanitizedPayload = $this->sanitizePayload($payload);
-
         return [
-            'headers' => $sanitizedHeaders,
-            'payload' => $sanitizedPayload,
+            'headers' => $this->sanitizeHeaders($headers),
+            'payload' => $this->sanitizePayload($payload),
         ];
     }
 
@@ -31,7 +49,8 @@ class AuditLogSanitizer
      */
     public function sanitizeResponse(Response $response): array
     {
-        $body = json_decode($response->getContent(), true) ?? null;
+        $decoded = json_decode($response->getContent(), true);
+        $body = is_array($decoded) ? $decoded : $response->getContent();
 
         return [
             'status' => $response->getStatusCode(),
@@ -42,40 +61,36 @@ class AuditLogSanitizer
 
     /**
      * Redact sensitive fields from headers.
+     *
+     * HTTP header names are case-insensitive, so the output keys are normalised
+     * to UPPERCASE for deterministic, case-insensitive comparisons downstream.
      */
     private function sanitizeHeaders(array $headers): array
     {
-        $sensitiveKeys = ['Authorization', 'api_key', 'client_secret', 'X-API-Key', 'X-Secret', 'Password', 'token'];
         $sanitized = [];
 
         foreach ($headers as $key => $values) {
-            $key = strtoupper($key);
+            $normalized = strtoupper($key);
 
-            if (in_array($key, $sensitiveKeys, true)) {
-                $sanitized[$key] = ['***REDACTED***'];
-            } else {
-                $sanitized[$key] = $values;
-            }
+            $sanitized[$normalized] = in_array($normalized, self::SENSITIVE_HEADERS, true)
+                ? ['***REDACTED***']
+                : $values;
         }
 
         return $sanitized;
     }
 
     /**
-     * Redact sensitive fields from payload.
+     * Redact sensitive fields from a payload (recursively).
      */
-    private function sanitizePayload(array $payload): array
+    private function sanitizePayload(mixed $payload): mixed
     {
         if (! is_array($payload)) {
             return $payload;
         }
 
-        $sensitiveKeys = ['api_key', 'client_secret', 'password', 'token', 'bearer', 'authorization', 'secret', 'key'];
-
-        array_walk_recursive($payload, function (&$value, $key) use ($sensitiveKeys) {
-            $key = strtolower($key);
-
-            if (in_array($key, $sensitiveKeys, true)) {
+        array_walk_recursive($payload, function (&$value, $key) {
+            if (is_string($key) && in_array(strtolower($key), self::SENSITIVE_PAYLOAD_KEYS, true)) {
                 $value = '***REDACTED***';
             }
         });

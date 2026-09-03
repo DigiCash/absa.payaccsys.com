@@ -3,6 +3,7 @@
 namespace Tests\Unit\Services\StatementsAPI;
 
 use App\Services\StatementsAPI\Support\AuditLogSanitizer;
+use Illuminate\Http\Response;
 use Tests\TestCase;
 
 /**
@@ -15,7 +16,7 @@ class AuditLogSanitizerTest extends TestCase
      */
     public function test_sanitize_redacts_sensitive_headers(): void
     {
-        $sanitizer = new AuditLogSanitizer();
+        $sanitizer = new AuditLogSanitizer;
 
         $headers = [
             'Authorization' => ['Bearer secret-token'],
@@ -48,7 +49,7 @@ class AuditLogSanitizerTest extends TestCase
      */
     public function test_sanitize_redacts_sensitive_payload(): void
     {
-        $sanitizer = new AuditLogSanitizer();
+        $sanitizer = new AuditLogSanitizer;
 
         $headers = ['Content-Type' => ['application/json']];
         $payload = [
@@ -82,7 +83,7 @@ class AuditLogSanitizerTest extends TestCase
      */
     public function test_sanitize_redacts_nested_payload(): void
     {
-        $sanitizer = new AuditLogSanitizer();
+        $sanitizer = new AuditLogSanitizer;
 
         $headers = ['Content-Type' => ['application/json']];
         $payload = [
@@ -113,7 +114,7 @@ class AuditLogSanitizerTest extends TestCase
      */
     public function test_sanitize_handles_null_values(): void
     {
-        $sanitizer = new AuditLogSanitizer();
+        $sanitizer = new AuditLogSanitizer;
 
         $headers = [];
         $payload = null;
@@ -129,7 +130,7 @@ class AuditLogSanitizerTest extends TestCase
      */
     public function test_sanitize_handles_empty_arrays(): void
     {
-        $sanitizer = new AuditLogSanitizer();
+        $sanitizer = new AuditLogSanitizer;
 
         $headers = [];
         $payload = [];
@@ -145,9 +146,9 @@ class AuditLogSanitizerTest extends TestCase
      */
     public function test_sanitize_response_with_success(): void
     {
-        $sanitizer = new AuditLogSanitizer();
+        $sanitizer = new AuditLogSanitizer;
 
-        $response = new \Illuminate\Http\Response(
+        $response = new Response(
             json_encode(['status' => 'success', 'api_key' => 'secret', 'data' => 'value']),
             200,
             ['Content-Type' => 'application/json']
@@ -167,9 +168,9 @@ class AuditLogSanitizerTest extends TestCase
      */
     public function test_sanitize_response_with_error(): void
     {
-        $sanitizer = new AuditLogSanitizer();
+        $sanitizer = new AuditLogSanitizer;
 
-        $response = new \Illuminate\Http\Response(
+        $response = new Response(
             json_encode(['error' => 'Invalid credentials', 'code' => 401]),
             401,
             ['Content-Type' => 'application/json', 'X-Error' => 'true']
@@ -189,9 +190,9 @@ class AuditLogSanitizerTest extends TestCase
      */
     public function test_sanitize_response_with_non_json(): void
     {
-        $sanitizer = new AuditLogSanitizer();
+        $sanitizer = new AuditLogSanitizer;
 
-        $response = new \Illuminate\Http\Response(
+        $response = new Response(
             'Internal Server Error',
             500,
             ['Content-Type' => 'text/plain']
