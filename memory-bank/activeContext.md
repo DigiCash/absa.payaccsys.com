@@ -88,6 +88,7 @@ application milestones (App-M2 → App-M4) are still a DRAFT blueprint awaiting 
   implemented + tested (2026-09-03 / 2026-09-04); App-M3 → App-M4 remain DRAFT, awaiting developer
   approval.**
 - **OAuth2 config keys** (`oauth_token_url`, `token_cache_key`, `token_ttl_buffer`, `audit_enabled`,
+  `audit_queue`) added to `config/absa.php`; `token_cache_ttl_seconds`/`redact_keys` still to wire.
 - **Audit redaction keys are case-insensitive and recursive:** `AuditLogSanitizer` keeps header keys
   UPPERCASE in output so downstream comparisons are deterministic; payload redaction covers
   `refresh_token` and stops redacting bare `key` (too broad — breaks legit data).
@@ -99,7 +100,6 @@ application milestones (App-M2 → App-M4) are still a DRAFT blueprint awaiting 
   silent positional misalignment (e.g. method landing in `direction`).
 - **Feature tests on middleware should build requests with `Request::create('/path')`** — a bare
   `new Request()` yields `fullUrl() === 'http://:'`, which breaks endpoint assertions.
-  `audit_queue`) added to `config/absa.php`; `token_cache_ttl_seconds`/`redact_keys` still to wire.
 - **Pest helper-function collision:** top-level `function` helpers in a test file are namespace-scoped
    (`Tests\Unit\Services\StatementsAPI`); a duplicate name across two files in the same namespace
    triggers `Cannot redeclare function` when the full suite loads both. `OAuth2TokenManagerTest`'s
