@@ -53,10 +53,13 @@ implemented + tested** (2026-09-03 / 2026-09-04; full Pest suite **93/93, 529 as
       non-2xx / undecodable / no-credential → `TokenAcquisitionException` (status + decoded `ErrorResponseDTO`).
       New DTO `Responses/OAuth/OAuthTokenResponseDTO` + `Transport/TokenAcquisitionException`. 6 hermetic tests
       (`OAuth2TokenManagerTest`, 22 assertions; `Http::fake()` + `CACHE_STORE=array` — `Cache::fake()` removed in L13.25).
-    - **App-M2 — `ApiAuditLogger` middleware** (`App\Http\Middleware\ApiAuditLogger`): sanitize payload/headers
-      (redact Bearer/secrets via pure `App\Services\StatementsAPI\Support\AuditLogSanitizer`); async capture to
-      `api_audit_logs` via queued `App\Jobs\StatementsAPI\RecordApiAuditLog`. Tests: `AuditLogSanitizerTest`
-      (Unit, hermetic) + `tests/Feature/Http/Middleware/ApiAuditLoggerTest.php` (`Queue::fake()`).
+    - **App-M2 — `ApiAuditLogger` middleware — ✅ DONE 2026-09-04** (`App\Http\Middleware\ApiAuditLogger`):
+      sanitize payload/headers (redact Bearer/secrets via pure `App\Services\StatementsAPI\Support\AuditLogSanitizer`);
+      async capture to `api_audit_logs` via queued `App\Jobs\StatementsAPI\RecordApiAuditLog`. Tests:
+      `AuditLogSanitizerTest` (Unit, hermetic, 8 tests) + `tests/Feature/Http/Middleware/ApiAuditLoggerTest.php`
+      (`Queue::fake()`, 6 tests). Bug-fix round (2026-09-04): sanitizer UPPERCASE header keys; null-safe payload;
+      job writes only real `api_audit_logs` columns (sanitized-only persistence, `environment` included);
+      named-arg dispatch; tests use `Request::create()`. 14 tests / 69 assertions; full suite **93/93 (529 assertions)**.
     - **App-M3 — `StatementService`** (`App\Services\StatementsAPI\StatementService`): consumes
       `StatementsApiClientInterface` + `OAuth2TokenManagerInterface` (resolves token → injects into
       `StatementsApiClientConfig::apiKey`); maps response DTOs; handles `StatementsApiException`.
