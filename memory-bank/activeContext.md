@@ -4,19 +4,31 @@
 > Last updated: 2026-09-04.
 
 ## Current focus
-**Statements API — Application & Domain layer.** The DTO + transport layers are **100% complete and
-signed off** (M0–M6 done 2026-09-01). **App-M1 (`OAuth2TokenManager`) is now IMPLEMENTED + tested**
-(2026-09-03): full Pest suite **79/79, 460 assertions**; `php -l` + Pint clean. The remaining
-application milestones (App-M2 → App-M4) are still a DRAFT blueprint awaiting approval.
+**Statements API — Application & Domain layer: 100% COMPLETE.** The DTO + transport layers are
+signed off (M0–M6 done 2026-09-01). **App-M1 (`OAuth2TokenManager`), App-M2 (`ApiAuditLogger`),
+App-M3 (`StatementService`) and App-M4 (inbound facade controllers + routes) are all IMPLEMENTED +
+tested** (2026-09-03 / 2026-09-04): full Pest suite **115/115, 624 assertions**; `php -l` + Pint
+clean. Statements API application layer is done; next outward steps are PayShap / AVS and Phase 1
+QA role.
 - **Transport layer M0–M6 — DONE** (2026-09-01): `StatementsApiClient` (concrete, `Http::` facade),
   mTLS `sslOptions()` mapping + retry-on-5xx/429 (M5), sign-off (M6).
 - **App-M1 — `OAuth2TokenManager` — DONE** (2026-09-03): concrete `App\Services\StatementsAPI\OAuth2TokenManager`
   + `Contracts\OAuth2TokenManagerInterface` (`getValidToken(): string`), `Responses/OAuth/OAuthTokenResponseDTO`,
   `Transport/TokenAcquisitionException`. OAuth2 Client Credentials grant + Cache caching + static `api_key`
   fallback (ADR-001). 6 hermetic tests (`OAuth2TokenManagerTest`, 22 assertions).
-- **Application layer App-M2 → App-M4 — DRAFT** (2026-09-02): `ApiAuditLogger` middleware (App-M2),
-  `StatementService` (App-M3), inbound facade controllers + routes (App-M4). Sequential micro-milestones,
-  each gated by a targeted Pest run. **Awaiting developer approval.**
+- **App-M2 — `ApiAuditLogger` middleware — DONE** (2026-09-04): `AuditLogSanitizer` + queued
+  `RecordApiAuditLog`. 14 tests / 69 assertions.
+- **App-M3 — `StatementService` — DONE** (2026-09-04): final, orchestrates the 8 operations;
+  constructor-injects `StatementsApiClientInterface` + `OAuth2TokenManagerInterface`; resolves the
+  bearer token ahead of every call (private `resolveToken()` → `getValidToken()`, exposed via
+  `resolvedToken()` for the `StatementsApiClientConfig::apiKey` seam, ADR-001); propagates
+  `StatementsApiException` unchanged. Hermetic double `FakeStatementsApiClient` + 3 tests
+  (`StatementServiceTest`, 30 assertions).
+- **App-M4 — Inbound facade controllers + routes — DONE** (2026-09-04): `App\Http\Controllers\StatementsAPI\`
+  (`Health`/`Balances`/`Statements`/`StatementTransactions`), Form Requests under
+  `App\Http\Requests\StatementsAPI\`, `routes/statements.php` (Sanctum-protected `api/v1/statements/*`),
+  container bindings in `AppServiceProvider`, typed error envelopes in `bootstrap/app.php`. 19 feature
+  tests / 65 assertions (`tests/Feature/StatementsAPI/*`).
 
 ## Recent changes (per planning docs; verify before relying on)
 - 2026-08-26: `dto-plan.md` approved; DTOs implemented under `app/DTOs/StatementsAPI/` (51 files).
@@ -38,6 +50,13 @@ application milestones (App-M2 → App-M4) are still a DRAFT blueprint awaiting 
    (`AuditLogSanitizerTest`, 8 tests), 69 assertions. Bug-fix round: UPPERCASE header-key redaction,
    null-safe payloads, job persists only real `api_audit_logs` columns with sanitized data (incl.
    `environment`), named-arg dispatch, `Request::create()` in tests. Full suite **93/93 (529 assertions)**.
+- 2026-09-04: **App-M3 (`StatementService`) implemented + tested.** `App\Services\StatementsAPI\StatementService`
+   (final) constructor-injects `StatementsApiClientInterface` + `OAuth2TokenManagerInterface`, resolves the
+   bearer token ahead of every operation (consumed via `StatementsApiClientConfig::apiKey`, ADR-001),
+   delegates all 8 operations and propagates `StatementsApiException` unchanged; exposes `resolvedToken()`.
+   Hermetic double `tests/Unit/DTOs/StatementsAPI/Support/FakeStatementsApiClient.php` (in-memory, zero
+   DB/network, records `called`/`received`). 3 tests / 30 assertions (`StatementServiceTest`). Full suite
+   **96/96 (559 assertions)**.
 
 ## Next steps (ordered)
 1. **App-M1 — `OAuth2TokenManager` — DONE** (2026-09-03): OAuth2 Client Credentials Grant + Cache
@@ -46,11 +65,13 @@ application milestones (App-M2 → App-M4) are still a DRAFT blueprint awaiting 
 2. **App-M2 — `ApiAuditLogger` middleware — DONE** (2026-09-04): `AuditLogSanitizer` + queued
    `RecordApiAuditLog`. FIX round: UPPERCASE key redaction, null-safe payload, job persists only
    real `api_audit_logs` columns (sanitized + `environment`), named-arg dispatch. 14 tests (69 assertions).
-3. **App-M3 — `StatementService`** (consumes `StatementsApiClientInterface` +
-   `OAuth2TokenManagerInterface`); gate on targeted Pest run, then **App-M4 — inbound facade
-   controllers + `routes/statements.php`**.
-4. **App-M3 — `StatementService`** (consumes `StatementsApiClientInterface` +
-   `OAuth2TokenManagerInterface`); **App-M4 — inbound facade controllers + `routes/statements.php`**.
+3. **App-M3 — `StatementService` — DONE** (2026-09-04): constructor-injects
+   `StatementsApiClientInterface` + `OAuth2TokenManagerInterface`; resolves token via `getValidToken()`
+   ahead of every call (injected through `StatementsApiClientConfig::apiKey`, ADR-001); maps response
+   DTOs; propagates `StatementsApiException` unchanged. Hermetic double `FakeStatementsApiClient` +
+   3 tests (`StatementServiceTest`, 30 assertions).
+4. **App-M4 — Inbound facade controllers + `routes/statements.php`** — next to implement
+   (Sanctum-protected `/v1/statements/*`).
 5. After Statements application layer: begin **PayShap** then **AVS** (each: spec → DTOs → transport).
 6. Wire remaining config keys (`token_cache_ttl_seconds`, `redact_keys`) into `config/absa.php`.
 
@@ -60,8 +81,9 @@ application milestones (App-M2 → App-M4) are still a DRAFT blueprint awaiting 
 - **D3 (TLS keys):** RESOLVED (ADR-003, 2026-09-01) — standard Guzzle `cert`/`ssl_key`.
 - **D2 (structure):** RESOLVED — concrete transport stays under `App\DTOs\StatementsAPI\Transport\`;
   test stays at `tests/Unit/Services/StatementsAPI/`.
-- **Application layer:** App-M1 (`OAuth2TokenManager`) implemented + tested (2026-09-03); App-M2 (`ApiAuditLogger` middleware) also implemented + tested (2026-09-04); App-M3 →
-  App-M4 still DRAFT, awaiting developer approval.
+- **Application layer:** App-M1 (`OAuth2TokenManager`), App-M2 (`ApiAuditLogger`) and App-M3
+  (`StatementService`) implemented + tested (2026-09-03 / 2026-09-04); **App-M4** (inbound facade
+  controllers + routes) still DRAFT, awaiting developer approval.
 - No CI pipeline exists; gates (G1–G10) enforced by agent + manual review until CI is added.
 
 ## Patterns & preferences to honour
@@ -84,9 +106,9 @@ application milestones (App-M2 → App-M4) are still a DRAFT blueprint awaiting 
 - `config('absa.statements')` is the config seam (not bare `config('absa')`).
 - `retry_attempts`/`retry_delay_ms` were deferred from M1 to M2/M5 (now implemented in M5).
 - `.agents/skills/` tree is inconsistent/partially broken — remediation required before Phase 1 QA role.
-- **Application layer: App-M1 (`OAuth2TokenManager`) + App-M2 (`ApiAuditLogger` middleware) are
-  implemented + tested (2026-09-03 / 2026-09-04); App-M3 → App-M4 remain DRAFT, awaiting developer
-  approval.**
+- **Application layer: App-M1 (`OAuth2TokenManager`), App-M2 (`ApiAuditLogger` middleware) and
+  App-M3 (`StatementService`) are implemented + tested (2026-09-03 / 2026-09-04); App-M4 (inbound
+  facade controllers + routes) remains DRAFT, awaiting developer approval.**
 - **OAuth2 config keys** (`oauth_token_url`, `token_cache_key`, `token_ttl_buffer`, `audit_enabled`,
   `audit_queue`) added to `config/absa.php`; `token_cache_ttl_seconds`/`redact_keys` still to wire.
 - **Audit redaction keys are case-insensitive and recursive:** `AuditLogSanitizer` keeps header keys

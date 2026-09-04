@@ -18,7 +18,7 @@ final readonly class GetHealthRequestDTO extends BaseDto
 
     public static function fromArray(array $data): static
      {
-        return new static(
+        return new GetHealthRequestDTO(
             headers: isset($data['headers']) ? AbsaRequestHeaders::fromArray($data['headers']) : null,
          );
      }
