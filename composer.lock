@@ -2901,12 +2901,12 @@
             "source": {
                 "type": "git",
                 "url": "git@github.com:DigiCash/laravel-payaccsys-db-logger.git",
-                "reference": "5329af80ac523cfb69256e38ca5e250c1cb93211"
+                "reference": "84728e62f0e3992ce1081268f4d4fe5f0a4d2d35"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/DigiCash/laravel-payaccsys-db-logger/zipball/5329af80ac523cfb69256e38ca5e250c1cb93211",
-                "reference": "5329af80ac523cfb69256e38ca5e250c1cb93211",
+                "url": "https://api.github.com/repos/DigiCash/laravel-payaccsys-db-logger/zipball/84728e62f0e3992ce1081268f4d4fe5f0a4d2d35",
+                "reference": "84728e62f0e3992ce1081268f4d4fe5f0a4d2d35",
                 "shasum": ""
             },
             "require": {
@@ -2951,7 +2951,7 @@
                 "source": "https://github.com/DigiCash/laravel-payaccsys-db-logger/tree/main",
                 "issues": "https://github.com/DigiCash/laravel-payaccsys-db-logger/issues"
             },
-            "time": "2026-09-04T05:24:39+00:00"
+            "time": "2026-09-04T06:36:54+00:00"
         },
         {
             "name": "phpoption/phpoption",
