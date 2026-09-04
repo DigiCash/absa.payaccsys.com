@@ -35,7 +35,8 @@ final class LogApiJourney
         $durationMs = round((microtime(true) - $startTime) * 1000, 2);
         $user = $request->user();
 
-        Log::info(sprintf('API %s %s [%d] (%sms)', $request->method(), $request->path(), $response->getStatusCode(), $durationMs), [
+        // Log as debug as we do not want to capture everything as of yet
+        Log::debug(sprintf('API %s %s [%d] (%sms)', $request->method(), $request->path(), $response->getStatusCode(), $durationMs), [
             'user_id' => $user?->getAuthIdentifier(),
             'user_email' => $user?->email ?? null,
             'method' => $request->method(),
