@@ -5,6 +5,7 @@ use App\DTOs\StatementsAPI\Transport\TokenAcquisitionException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,7 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         api: __DIR__.'/../routes/api.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
-        then: fn () => require __DIR__.'/../routes/statements.php',
+        then: function (): void {
+            Route::middleware('api')
+                ->group(base_path('routes/statements.php'));
+        },
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->redirectGuestsTo(
@@ -25,6 +29,19 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
+
+        $exceptions->render(function (ConnectionException $e, Request $request): ?JsonResponse {
+            if (! $request->is('api/*')) {
+                return null;
+            }
+
+            return response()->json([
+                'error' => [
+                    'Code' => 'UPSTREAM_CONNECTION_FAILED',
+                    'Message' => 'Unable to connect to upstream service provider.',
+                ],
+            ], 502);
+        });
 
         $exceptions->render(function (StatementsApiException $e, Request $request): ?JsonResponse {
             if (! $request->is('api/*')) {
