@@ -1,6 +1,6 @@
 # Tech Context — ABSA API Hub
 
-> Technologies, dev setup, constraints, dependencies, tool usage. Last updated: 2026-09-03.
+> Technologies, dev setup, constraints, dependencies, tool usage. Last updated: 2026-09-07.
 
 ## 1. Stack
 - **Framework:** Laravel `^13.17` (`laravel/framework` locked).
@@ -27,7 +27,8 @@
 ## 4. Configuration
 - `config/absa.php`: `environment` (`ABSA_ENV`, default `sandbox`), `statements` block
   (`base_url`, `api_key`, `client_id`, `client_secret`, `passphrase`, `cert_path`, `key_path`,
-  `retry_attempts`=3, `retry_delay_ms`=250), `payshap`/`avs` placeholders.
+  `retry_attempts`=3, `retry_delay_ms`=250, `oauth_token_url`, `token_cache_key`,
+  `token_ttl_buffer`=60, `audit_enabled`=true, `audit_queue`=default), `payshap`/`avs` placeholders.
 - `config/db-logger.php` (db-logger), `config/logging.php` (`log_stack` channel), `config/sanctum.php`.
 - Other config: `app`, `auth`, `cache`, `database`, `filesystems`, `mail`, `queue`, `services`, `session`.
 
@@ -35,13 +36,17 @@
 - Namespace `App\` → `app/` (PSR-4): `App\Http\Controllers`, `App\Models`, `App\Providers`,
   plus custom `App\Support\` and `App\Traits\`.
 - Custom: `app/Support/DatabaseLogProxy.php`, `app/Traits/InteractsWithDatabaseLog.php`.
-- **Application layer:** `App\Services\StatementsAPI\OAuth2TokenManager` +
-      `Contracts\OAuth2TokenManagerInterface` — **DONE (2026-09-03)**. Still DRAFT:
-      `App\Services\StatementsAPI\StatementService`, `App\Http\Middleware\ApiAuditLogger`,
-      `App\Http\Controllers\StatementsAPI\` (Health/Balances/Statements/StatementTransactions).
+- **Application layer — COMPLETE (2026-09-03 / 2026-09-04):**
+  `App\Services\StatementsAPI\OAuth2TokenManager` + `Contracts\OAuth2TokenManagerInterface`,
+  `App\Services\StatementsAPI\StatementService`, `App\Http\Middleware\ApiAuditLogger`,
+  `App\Services\StatementsAPI\Support\AuditLogSanitizer`, queued
+  `App\Jobs\StatementsAPI\RecordApiAuditLog`, and `App\Http\Controllers\StatementsAPI\`
+  + Form Requests under `App\Http\Requests\StatementsAPI\` (all implemented + tested).
 - Migrations: `create_users_table`, `create_cache_table`, `create_jobs_table`,
   `create_personal_access_tokens_table`, `create_api_audit_logs`, `add_environment_to_api_audit_logs_table`.
-- Routes (`routes/api.php`): `POST /v1/login` (Sanctum token), `GET /v1/user` (`auth:sanctum`).
+- Routes: `routes/api.php` (`POST /api/v1/login` Sanctum token, `GET /api/v1/user` `auth:sanctum`);
+  `routes/statements.php` (Statements facade, `api/v1/statements/*`, Sanctum-protected, loaded via
+  `withRouting(then:)`).
 
 ## 6. Tool usage patterns (MANDATORY)
 - **All CLI inside the container, no `-it`:** `docker exec absa84_api <command>`.

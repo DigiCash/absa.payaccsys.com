@@ -1,6 +1,6 @@
 # Progress — ABSA API Hub
 
-> What works, what's left, current status, known issues, decision evolution. Last updated: 2026-09-04.
+> What works, what's left, current status, known issues, decision evolution. Last updated: 2026-09-07.
 
 ## Overall status
 **Phase 0 (Bootstrap/Discovery) → early implementation.** The Phase 0 proposal
@@ -8,7 +8,8 @@
 The **Statements API DTO + transport layers are 100% complete and signed off**
 (M0–M6 done 2026-09-01), and **App-M1 (`OAuth2TokenManager`) + App-M2 (`ApiAuditLogger`) +
 App-M3 (`StatementService`) + App-M4 (inbound facade controllers & routes) are all implemented
-+ tested** (2026-09-03 / 2026-09-04; full Pest suite **115/115, 624 assertions**; `php -l` + Pint clean).
++ tested** (2026-09-03 / 2026-09-04; full Pest suite **116/116, 627 assertions** on 2026-09-07;
+`php -l` + Pint clean). **All tests are now Pest-native** and **root docs refreshed** (2026-09-07).
 
 ## What works (verified / reported)
 - **Statements DTO layer** — implemented under `app/DTOs/StatementsAPI/` (~40 files):
@@ -62,6 +63,14 @@ App-M3 (`StatementService`) + App-M4 (inbound facade controllers & routes) are a
   `var_dump($e->getMessage(), $e->getTraceAsString()); exit;` debug line injected into
   `vendor/laravel/framework/.../Exceptions/Handler.php` `reportThrowable()` was removed (it was
   killing any test that reported an exception). Full suite now **115/115 (624 assertions)**.
+- **All tests Pest-native + root docs refreshed (2026-09-07):** migrated the last 5 PHPUnit-style
+  test files (`tests/Unit/ExampleTest.php`, `tests/Feature/ExampleTest.php`,
+  `tests/Unit/DTOs/StatementsAPI/Support/BaseDtoTest.php`, `AuditLogSanitizerTest.php`,
+  `tests/Feature/Http/Middleware/ApiAuditLoggerTest.php`) to `uses(TestCase::class)` + `it()` /
+  top-level `it()`. Full Pest suite **116/116 (627 assertions)**; no `extends TestCase` /
+  `PHPUnit\Framework\TestCase` remains in `tests/`. `PROJECT.md` updated (status, Application
+  Structure table, facade route map, completed priorities); `README.md` rewritten with a Laravel
+  focus + explicit ABSA-hub overview + link to `PROJECT.md`.
 
 ## What's left to build
 - **M5:** ✅ done 2026-09-01 — mTLS `sslOptions()` mapping (standard Guzzle `cert`/`ssl_key`) + retry-on-5xx/429 tests; see ADR-003.
@@ -112,6 +121,8 @@ App-M3 (`StatementService`) + App-M4 (inbound facade controllers & routes) are a
       `Planning/03_APIS/STATEMENTS/application-layer-plan.md`; update this `progress.md`.
 - **PayShap Request API** — not started (spec → DTOs → transport).
 - **AVS** — not started.
+- **`docs/` directory** — does not exist yet; create it and promote approved planning into it
+  (a documented next step; `PROJECT.md`/`README.md` already reference it).
 - `Planning/99_Decisions/` ADR-001 (external auth architecture, D1) and ADR-003 (mTLS option keys, D3) created 2026-09-01.
 - `.agents/skills/` remediation (inconsistent/partially broken) before Phase 1 QA role.
 - CI pipeline (none exists) — future, not Phase 1.
@@ -148,6 +159,10 @@ App-M3 (`StatementService`) + App-M4 (inbound facade controllers & routes) are a
    `Http::fake()` URL patterns don't match query-bearing URLs (`*` suffix needed); removed a stray
    `var_dump(); exit;` debug line from `vendor/.../Exceptions/Handler.php::reportThrowable()` that
    killed any test reporting an exception. Full suite **115/115 (624 assertions)**; `php -l` + Pint clean.
+- **2026-09-07:** Migrated the last PHPUnit-style tests to Pest (5 files; no PHPUnit references left
+   in `tests/`); full suite **116/116 (627 assertions)**; `php -l` + Pint clean. Updated `PROJECT.md`
+   and `README.md` (project status, application structure/route map, Laravel-focused README linking
+   to `PROJECT.md`).
 
 ## Guardrails in force (G1–G10, from the proposal)
 G1 no source-doc mutation · G2 no DB write without approval · G3 `.env`/secrets protection ·

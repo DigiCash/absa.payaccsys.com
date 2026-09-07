@@ -21,13 +21,16 @@ as separate Laravel applications for each ABSA service.
 
 ## Project Status
 
-**Current phase:** Planning / Architecture
+**Current phase:** Early implementation — Statements & Transactions API
 
-**Implementation status:** Initial Laravel application
+**Implementation status:** The Statements API integration is implemented
+across the DTO, transport and application layers and is covered by the Pest
+test suite (~116 tests / ~627 assertions, all hermetic). PayShap and AVS are
+planned but not yet started.
 
-**Current development focus:** API architecture, integration boundaries,
-contracts, persistence, security, resilience, testing and AI-assisted
-development preparation.
+**Current development focus:** Completing and hardening the Statements API
+integration, then onboarding the PayShap and AVS integrations using the same
+DTO-first, domain-isolated pattern.
 
 No API implementation should be considered approved merely because it has
 been proposed in Planning documentation.
@@ -82,6 +85,15 @@ Approved documentation:
 
 `docs/apis/statements/`
 
+Implementation status:
+
+- DTO layer (requests, responses, models, enums, error model) — **done**
+- Transport layer (`StatementsApiClient` + config + typed exception, mTLS,
+  retry-on-5xx/429) — **done**
+- Application layer (`OAuth2TokenManager`, `ApiAuditLogger`, `StatementService`,
+  inbound facade controllers) — **done**
+- Inbound HTTP facade exposed under `/api/v1/statements/*` (Sanctum-protected)
+
 ---
 
 ### PayShap Request API
@@ -113,6 +125,43 @@ Planning location:
 Approved documentation:
 
 `docs/apis/avs/`
+
+---
+
+## Application Structure
+
+The Statements integration is organised into layers under dedicated
+namespaces. Each future ABSA domain (PayShap, AVS) will mirror this layout in
+its own namespace rather than sharing unproven abstractions.
+
+| Layer | Location | Responsibility |
+| --- | --- | --- |
+| HTTP facade | `app/Http/Controllers/StatementsAPI/` | Thin inbound adapters over `StatementService` |
+| Requests (validation) | `app/Http/Requests/StatementsAPI/` | Inbound validation for facade endpoints |
+| Application services | `app/Services/StatementsAPI/` | `OAuth2TokenManager`, `StatementService`, `AuditLogSanitizer`, contracts |
+| Middleware | `app/Http/Middleware/` | `ApiAuditLogger` (audit), `LogApiJourney` (request journey) |
+| Jobs | `app/Jobs/StatementsAPI/` | `RecordApiAuditLog` (queued audit persistence) |
+| DTO layer | `app/DTOs/StatementsAPI/` | Typed requests, responses, models, enums, errors |
+| Transport | `app/DTOs/StatementsAPI/Transport/` | `StatementsApiClient`, config value object, typed exceptions |
+
+### Inbound facade routes
+
+The Statements facade is registered in `routes/statements.php` and mounted
+under the `api/v1` prefix, protected by `auth:sanctum`:
+
+| Method | URI | Operation |
+| --- | --- | --- |
+| `GET` | `/api/v1/statements/health` | Health check |
+| `GET` | `/api/v1/statements/balances` | Get balances (list) |
+| `GET` | `/api/v1/statements/accounts/{accountId}/balances` | Get account balance |
+| `GET` | `/api/v1/statements/` | Get all statements |
+| `GET` | `/api/v1/statements/accounts/{accountId}/statements` | Get account statements |
+| `GET` | `/api/v1/statements/accounts/{accountId}/statements/{statementId}` | Get statement |
+| `GET` | `/api/v1/statements/accounts/{accountId}/statements/{statementId}/transactions` | Get statement transactions |
+| `GET` | `/api/v1/statements/accounts/{accountId}/intraday-statement` | Get intraday statement |
+
+Authenticated hub routes (`routes/api.php`): `POST /api/v1/login` issues a
+Sanctum token, `GET /api/v1/user` returns the authenticated user.
 
 ---
 
@@ -337,20 +386,20 @@ Contains approved Architecture Decision Records.
 
 The current order of work is:
 
-1. Establish project and repository discovery.
-2. Document infrastructure and database responsibilities.
-3. Document the existing logging implementation.
-4. Analyse the Statements API source material.
+1. ~~Establish project and repository discovery.~~ — **done**
+2. ~~Document infrastructure and database responsibilities.~~ — **done**
+3. ~~Document the existing logging implementation.~~ — **done**
+4. ~~Analyse the Statements API source material.~~ — **done**
 5. Analyse the PayShap API source material.
 6. Analyse the AVS source material.
-7. Establish the common API-hub architecture.
-8. Establish security and resilience requirements.
+7. ~~Establish the common API-hub architecture.~~ — **done** (ADRs recorded)
+8. ~~Establish security and resilience requirements.~~ — **done** (ADR-001, ADR-003)
 9. Establish persistence requirements.
-10. Establish testing strategy.
-11. Record architectural decisions.
+10. ~~Establish testing strategy.~~ — **done** (hermetic Pest strategy in force)
+11. ~~Record architectural decisions.~~ — **done** (ADR-001, ADR-003)
 12. Promote approved planning into `docs/`.
-13. Establish the final Cline rules.
-14. Begin focused implementation.
+13. Establish the final AI-agent rules.
+14. Harden and extend the Statements integration; onboard PayShap, then AVS.
 
 ---
 
@@ -368,11 +417,13 @@ necessary, and incorporated into an approved specification and architecture.
 
 A developer or AI agent entering the project should read:
 
-1. `PROJECT.md`
-2. `.clinerules/00-agent-workflow.md` — when available
-3. Relevant files under `Planning/`
-4. Relevant approved documentation under `docs/`
-5. Relevant source code
-6. Relevant tests
+1. `README.md` — quick start and Laravel-focused overview
+2. `PROJECT.md` — this document: project scope and architecture
+3. `memory-bank/` — current agent context, progress and patterns
+4. `.clinerules/00-agent-workflow.md` — agent workflow guardrails
+5. Relevant files under `Planning/`
+6. Relevant approved documentation under `docs/`
+7. Relevant source code
+8. Relevant tests
 
 Do not read the entire repository unless the task genuinely requires it.

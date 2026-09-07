@@ -1,15 +1,19 @@
 # Active Context — ABSA API Hub
 
 > Current focus, recent changes, next steps, open decisions. Update after significant changes.
-> Last updated: 2026-09-04.
+> Last updated: 2026-09-07.
 
 ## Current focus
 **Statements API — Application & Domain layer: 100% COMPLETE.** The DTO + transport layers are
 signed off (M0–M6 done 2026-09-01). **App-M1 (`OAuth2TokenManager`), App-M2 (`ApiAuditLogger`),
 App-M3 (`StatementService`) and App-M4 (inbound facade controllers + routes) are all IMPLEMENTED +
-tested** (2026-09-03 / 2026-09-04): full Pest suite **115/115, 624 assertions**; `php -l` + Pint
-clean. Statements API application layer is done; next outward steps are PayShap / AVS and Phase 1
-QA role.
+tested** (2026-09-03 / 2026-09-04): full Pest suite **116/116, 627 assertions** (2026-09-07);
+`php -l` + Pint clean. **All tests are now Pest-native** — the last 5 PHPUnit-style files were
+migrated 2026-09-07 (no `extends TestCase` / `PHPUnit\Framework\TestCase` remain in `tests/`).
+**Documentation refreshed** (2026-09-07): `PROJECT.md` status/application-structure/route-map
+updated; `README.md` rewritten with a Laravel focus + a clear project overview and a link to
+`PROJECT.md`. Statements API application layer is done; next outward steps are PayShap / AVS and
+Phase 1 QA role.
 - **Transport layer M0–M6 — DONE** (2026-09-01): `StatementsApiClient` (concrete, `Http::` facade),
   mTLS `sslOptions()` mapping + retry-on-5xx/429 (M5), sign-off (M6).
 - **App-M1 — `OAuth2TokenManager` — DONE** (2026-09-03): concrete `App\Services\StatementsAPI\OAuth2TokenManager`
@@ -58,6 +62,19 @@ QA role.
    DB/network, records `called`/`received`). 3 tests / 30 assertions (`StatementServiceTest`). Full suite
    **96/96 (559 assertions)**.
 
+- 2026-09-07: **Migrated the last 5 PHPUnit-style test files to Pest** (`tests/Unit/ExampleTest.php`,
+  `tests/Feature/ExampleTest.php`, `Support/BaseDtoTest.php`, `AuditLogSanitizerTest.php`,
+  `ApiAuditLoggerTest.php`) — removed all `extends TestCase` / `PHPUnit\Framework\TestCase` /
+  `public function test_*`; app-dependent tests now use `uses(TestCase::class)` + `it()` (pattern from
+  `HealthEndpointTest` / `OAuth2TokenManagerTest`); pure unit tests are top-level `it()`/`expect()`.
+  Added `declare(strict_types=1)`. `php -l` + Pint clean. Full Pest suite **116/116 (627 assertions)**.
+  No PHPUnit references remain in `tests/`.
+- 2026-09-07: **Updated root docs.** `PROJECT.md` updated: status → *Early implementation
+  (Statements API)*, added an *Application Structure* layer table + full inbound facade route map,
+  mark completed planning priorities as done, updated *Where To Start*. `README.md` rewritten to keep a
+  Laravel focus while making the ABSA hub project purpose explicit and linking to `PROJECT.md`.
+  `docs/` dir does NOT yet exist — references to it are target-of-record only.
+
 ## Next steps (ordered)
 1. **App-M1 — `OAuth2TokenManager` — DONE** (2026-09-03): OAuth2 Client Credentials Grant + Cache
    caching + auto-refresh; static `api_key` fallback (ADR-001). `OAuthTokenResponseDTO` +
@@ -70,10 +87,13 @@ QA role.
    ahead of every call (injected through `StatementsApiClientConfig::apiKey`, ADR-001); maps response
    DTOs; propagates `StatementsApiException` unchanged. Hermetic double `FakeStatementsApiClient` +
    3 tests (`StatementServiceTest`, 30 assertions).
-4. **App-M4 — Inbound facade controllers + `routes/statements.php`** — next to implement
-   (Sanctum-protected `/v1/statements/*`).
-5. After Statements application layer: begin **PayShap** then **AVS** (each: spec → DTOs → transport).
-6. Wire remaining config keys (`token_cache_ttl_seconds`, `redact_keys`) into `config/absa.php`.
+4. **App-M4 — Inbound facade controllers + `routes/statements.php`** — DONE (2026-09-04,
+   Sanctum-protected `/v1/statements/*`).
+5. **Test migration + docs — DONE** (2026-09-07): all tests Pest-native (116/116); `PROJECT.md` +
+   `README.md` refreshed.
+6. After Statements application layer: begin **PayShap** then **AVS** (each: spec → DTOs → transport).
+7. Wire remaining config keys (`token_cache_ttl_seconds`, `redact_keys`) into `config/absa.php`.
+8. Promote approved planning into the not-yet-created `docs/` directory; remediate `.agents/skills/`.
 
 ## Open decisions / blockers
 - **D1 (auth):** RESOLVED (ADR-001, 2026-09-01) — OAuth 2.0 Client Credentials Grant via
@@ -81,9 +101,11 @@ QA role.
 - **D3 (TLS keys):** RESOLVED (ADR-003, 2026-09-01) — standard Guzzle `cert`/`ssl_key`.
 - **D2 (structure):** RESOLVED — concrete transport stays under `App\DTOs\StatementsAPI\Transport\`;
   test stays at `tests/Unit/Services/StatementsAPI/`.
-- **Application layer:** App-M1 (`OAuth2TokenManager`), App-M2 (`ApiAuditLogger`) and App-M3
-  (`StatementService`) implemented + tested (2026-09-03 / 2026-09-04); **App-M4** (inbound facade
-  controllers + routes) still DRAFT, awaiting developer approval.
+- **Application layer:** App-M1 (`OAuth2TokenManager`), App-M2 (`ApiAuditLogger`), App-M3
+  (`StatementService`) and App-M4 (inbound facade controllers + routes) ALL implemented + tested
+  (2026-09-03 / 2026-09-04). No pending application-layer blocker for Statements.
+- **Docs:** `docs/` directory does not yet exist; `PROJECT.md`/`README.md` reference it as the
+  target for approved knowledge (create + promote planning into it next).
 - No CI pipeline exists; gates (G1–G10) enforced by agent + manual review until CI is added.
 
 ## Patterns & preferences to honour
@@ -103,6 +125,12 @@ QA role.
 
 ## Learnings / insights
 - No DTO/enum library is installed (no Spatie/Invictus) — DTOs are native PHP, zero new deps.
+- **All tests are Pest-native (2026-09-07).** The repo previously mixed PHPUnit classes with Pest
+  `it()`. Migrating: drop `extends TestCase` / `PHPUnit\Framework\TestCase`, convert
+  `public function test_*` to top-level `it('...', fn () => ...)`; app-bootstrapping tests need
+  `uses(TestCase::class)`, while pure-unit tests (no Laravel app) use top-level `it()` only. A plain
+  static helper class may remain in a test file (e.g. `BaseDtoTest`) — it is NOT a test case. After
+  migrating, Pint (`--dirty`) cleans leftovers (e.g. unused `use` imports, indentation).
 - `config('absa.statements')` is the config seam (not bare `config('absa')`).
 - `retry_attempts`/`retry_delay_ms` were deferred from M1 to M2/M5 (now implemented in M5).
 - `.agents/skills/` tree is inconsistent/partially broken — remediation required before Phase 1 QA role.

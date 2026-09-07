@@ -21,9 +21,9 @@ StatementsApiClientInterface  ──►  StatementsApiClient (Illuminate\Http\Cl
 *ResponseDTO  ◄── decode ──  StatementsApiException (non-2xx, carries ErrorResponseDTO)
 ```
 Callers depend on the **interface**, never on Guzzle/HttpClient. Transport detail is isolated to
-`App\DTOs\StatementsAPI\Transport\`. The application/domain layer is **partially built**:
-`OAuth2TokenManager` is implemented + tested (2026-09-03); the remaining components (facade
-controllers, `StatementService`, `ApiAuditLogger`) are **DRAFT — no code written yet**.
+`App\DTOs\StatementsAPI\Transport\`. The application/domain layer is **complete**: `OAuth2TokenManager`,
+`StatementService`, `ApiAuditLogger` and the inbound facade controllers are all implemented + tested
+(2026-09-03 / 2026-09-04).
 
 ## 2. Domain isolation (anti-premature-abstraction)
 - Each ABSA capability lives in its own namespace: `App\DTOs\StatementsAPI\` (active),
@@ -78,9 +78,8 @@ controllers, `StatementService`, `ApiAuditLogger`) are **DRAFT — no code writt
 - `SupplementaryData` modelled as empty placeholder DTO to preserve field contract.
 - Binary `File`/file-download endpoints are NOT modelled as JSON (handled outside DTO layer).
 
-## 9. Application / domain layer (App-M1 done; App-M2 → App-M4 DRAFT)
-The transport layer (M0–M6) is complete and signed off. **App-M1 (`OAuth2TokenManager`) is
-implemented + tested (2026-09-03)**; App-M2 → App-M4 remain a **DRAFT design awaiting approval**.
+## 9. Application / domain layer (complete)
+The transport layer (M0–M6) and the application layer (App-M1 → App-M4) are complete and tested.
 Components:
 
 - **`OAuth2TokenManager` — ✅ DONE (2026-09-03)** — `App\Services\StatementsAPI\OAuth2TokenManager`
@@ -88,12 +87,12 @@ Components:
   OAuth2 client-credentials token (cached in Cache for `expires_in - token_ttl_buffer`, floored at 0)
   with a static `api_key` fallback; non-2xx/undecodable/no-credential → `TokenAcquisitionException`.
   Resolves **D1 (Auth)** via **ADR-001**.
-- **`ApiAuditLogger`** — writes audit/trace records to the MySQL logging DB
+- **`ApiAuditLogger`** — ✅ DONE (2026-09-04) — writes audit/trace records to the MySQL logging DB
   (`mysql_fingo_logs` / `logging.logs`) for inbound facade calls and outbound ABSA calls.
-- **`StatementService`** — orchestrates: resolve token → build `*RequestDTO` → call
+- **`StatementService`** — ✅ DONE (2026-09-04) — orchestrates: resolve token → build `*RequestDTO` → call
   `StatementsApiClientInterface` → decode `*ResponseDTO` / surface `StatementsApiException`.
 - **Inbound facade controllers** (`App\Http\Controllers\StatementsAPI\`) — thin HTTP adapters over
-  `StatementService`, exposed under `/v1` via `routes/api.php`.
+  `StatementService`, exposed under `/api/v1/statements/*` via `routes/statements.php`.
 
 Constraints carried into the application layer:
 - TLS/mTLS posture is fixed by **ADR-003** (resolves **D3 (TLS)**); no new transport decisions.

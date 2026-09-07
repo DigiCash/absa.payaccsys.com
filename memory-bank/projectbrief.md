@@ -1,7 +1,8 @@
 # Project Brief — ABSA API Hub (`absa84_api`)
 
 > Foundation document. Source of truth for project scope. Read first, every session.
-> Last updated: 2026-09-02. Phase: Bootstrap / Discovery (Phase 0) → transport layer complete; application layer DRAFT.
+> Last updated: 2026-09-07. Phase: Early implementation — Statements API (DTO + transport +
+> application layers complete); all tests Pest-native (~116 tests); root docs refreshed.
 
 ## 1. What this project is
 A **Laravel 13 API application** (PHP 8.4, running in Docker) that acts as a **central API hub**
@@ -10,7 +11,7 @@ contract and exposes them to internal consumers (e.g. "Phoenix").
 
 ## 2. Core requirements / goals
 - Integrate three ABSA API capabilities, in priority order:
-    1. **Statements & Transactions API** (active — DTO + transport layer complete; application layer DRAFT)
+    1. **Statements & Transactions API** (active — DTO + transport + application layers complete; all tests Pest-native)
   2. **PayShap Request API** (planned, not started)
   3. **Account Verification Service (AVS)** (planned, not started)
 - Provide a **typed, DTO-first** internal contract (no raw arrays crossing domain boundaries).
@@ -34,7 +35,9 @@ contract and exposes them to internal consumers (e.g. "Phoenix").
 7. Agent assumptions — **never promoted silently to requirements**
 
 ## 5. Scope boundaries
-- **In scope now:** Statements API DTOs + HTTP transport layer (complete); application layer (DRAFT, awaiting approval); planning/governance docs.
+- **In scope now:** Statements API DTOs + HTTP transport layer (complete) + application layer
+  (OAuth2TokenManager, ApiAuditLogger, StatementService, facade controllers — complete); Pest-native
+  test migration (complete); root docs (`PROJECT.md`/`README.md`) refreshed; planning/governance docs.
 - **Out of scope now:** PayShap, AVS, queue workers, CI pipeline (none exists).
 
 ## 6. Key governing documents

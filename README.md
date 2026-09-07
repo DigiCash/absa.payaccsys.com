@@ -7,6 +7,80 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## ABSA API Hub
+
+This repository is a **Laravel 13 API application** that acts as a central hub
+for **ABSA** banking capabilities. It wraps external ABSA APIs behind a typed,
+DTO-first internal contract and exposes a clean, authenticated HTTP boundary to
+internal consumers.
+
+> **This is not a bare Laravel skeleton.** It extends Laravel to integrate
+> external ABSA API services. For the full project scope, architecture,
+> governance rules and status, see **[PROJECT.md](PROJECT.md)**.
+
+### What this project entails
+
+- A **central API hub** for ABSA capabilities, built as a modular Laravel
+  monolith (not one app per ABSA service).
+- Three ABSA integrations, in priority order:
+  1. **Statements & Transactions API** — implemented (DTO + transport +
+     application layers, with Pest coverage).
+  2. **PayShap Request API** — planned, not started.
+  3. **Account Verification Service (AVS)** — planned, not started.
+- A **typed, DTO-first internal contract** (requests, responses, models,
+  enums, one shared error model) — no raw arrays crossing domain boundaries.
+- **Domain-isolated namespaces** — each ABSA capability lives in its own
+  namespace; adding PayShap/AVS later does not destabilise Statements.
+- A **dual-database design** — application/audit data (PostgreSQL) separated
+  from operational logging (MySQL).
+- **AI-agent-friendly engineering** — planning-before-implementation,
+  traceable decisions, hermetic tests.
+
+### Placing this project in Laravel terms
+
+It uses standard Laravel concepts to do all of the above:
+
+- **Sanctum** for internal token authentication (`POST /api/v1/login`).
+- **Controllers + Form Requests** for the inbound Statements facade
+  (`routes/statements.php`, `/api/v1/statements/*`).
+- **Queued jobs + middleware** for audit logging (`ApiAuditLogger`,
+  `RecordApiAuditLog`).
+- **HTTP client abstractions** for the outbound ABSA transport
+  (`app/DTOs/StatementsAPI/Transport/`), with mTLS and retry-on-5xx/429.
+- **Pest** for a fully hermetic test suite (no DB/network in unit tests).
+
+## Getting Started
+
+This repository is a standard Laravel application run inside Docker.
+
+### Prerequisites
+
+- Docker (the app targets PHP 8.4; the container must be used instead of any
+  host PHP interpreter).
+
+### Running the application
+
+```bash
+composer install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate --force
+npm install
+npm run build
+php artisan dev
+```
+
+### Running the tests
+
+The project uses [Pest](https://pestphp.com), run inside the container:
+
+```bash
+docker exec absa84_api ./vendor/bin/pest tests/
+```
+
+> Tests are designed to be hermetic — unit tests make zero database or
+> network calls, and outbound HTTP is tested with fakes.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
@@ -29,25 +103,14 @@ In addition, [Laracasts](https://laracasts.com) contains thousands of video tuto
 
 You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
 
-## Agentic Development
+## Project Documentation
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
-```
-
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
-
-## Contributing
-
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
-
-## Code of Conduct
-
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **[PROJECT.md](PROJECT.md)** — project scope, architecture, databases,
+  governance and status.
+- **[memory-bank](memory-bank/)** — current agent context, progress and
+  engineering patterns.
+- **[Planning](Planning/)** — proposed, in-progress and planned project work.
+- **[docs](docs/)** — approved and maintained project knowledge.
 
 ## Security Vulnerabilities
 

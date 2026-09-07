@@ -1,12 +1,12 @@
 # API Integration — Statements & Transactions (active)
 
 > Additional context for the active domain integration. Source spec is authoritative.
-> Last updated: 2026-09-01.
+> Last updated: 2026-09-07.
 
 ## Source of truth
 - **Spec:** `_StatementsAPI_/Statements_Facade_API_Swagger_20250910.yml` (OpenAPI 3.0.1) — **read-only**.
 - **Derived plans:** `Planning/03_APIS/STATEMENTS/dto-plan.md` (approved 2026-08-26),
-  `Planning/03_APIS/STATEMENTS/client-transport-plan.md` (M0–M4 done, M5/M6 pending).
+  `Planning/03_APIS/STATEMENTS/client-transport-plan.md` (M0–M6 done, signed off 2026-09-01).
 - **Namespace:** `App\DTOs\StatementsAPI`. **Config seam:** `config('absa.statements')`.
 
 ## Endpoints → response envelopes
@@ -34,17 +34,23 @@
 - `CurrencyCode` = value DTO (ISO-4217, 31 codes), NOT an enum (documented exception).
 - `SupplementaryData` = empty placeholder DTO. Binary `File` handled outside the DTO layer.
 
-## Transport status
+## Transport status — COMPLETE (M0–M6, signed off 2026-09-01)
 - `StatementsApiClientInterface` (8 methods), `StatementsApiException`, `StatementsApiClientConfig` — done.
-- `StatementsApiClient` — done through M4 (happy + error paths). **M5 (mTLS+retry) + M6 (sign-off) pending.**
-- Auth currently: `Authorization: Bearer {apiKey}` (D1 open: Bearer vs token endpoint).
-- mTLS `withOptions()` key set unresolved (D3: Guzzle `cert`/`ssl_key` vs Laravel-curl `curl_ssl_cert`/`curl_ssl_key`).
+- `StatementsApiClient` — done: happy + error paths, mTLS `sslOptions()` mapping + retry-on-5xx/429 (M5).
+- Auth (D1 resolved, ADR-001): OAuth 2.0 Client Credentials Grant via `OAuth2TokenManager` + static
+  `Authorization: Bearer {api_key}` fallback.
+- mTLS (D3 resolved, ADR-003): standard Guzzle `cert`/`ssl_key`.
+
+## Application layer — COMPLETE (2026-09-03 / 2026-09-04)
+- `OAuth2TokenManager`, `ApiAuditLogger` + `AuditLogSanitizer` + queued `RecordApiAuditLog`,
+  `StatementService`, inbound facade controllers + Form Requests, `routes/statements.php`
+  (Sanctum-protected `api/v1/statements/*`). All covered by hermetic Pest tests.
 
 ## Open questions
-- **D1:** auth mechanism (Bearer `api_key` vs token endpoint).
-- **D3:** exact `withOptions()` TLS key set.
-- (D2 resolved: transport in `App\DTOs\StatementsAPI\Transport\`, test in `tests/Unit/Services/StatementsAPI/`.)
+- (D1 auth, D2 structure, D3 TLS — all resolved; D2: transport in `App\DTOs\StatementsAPI\Transport\`,
+  test in `tests/Unit/Services/StatementsAPI/`.)
+- No open transport/application questions for Statements.
 
 ## Next
-1. Resolve D1/D3 → implement M5 (mTLS + retry tests) → M6 sign-off.
+1. Harden/extend Statements as needed; keep the Pest suite green (currently 116/116).
 2. Then start PayShap, then AVS (mirror this structure in new namespaces).
