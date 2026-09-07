@@ -19,6 +19,7 @@ use App\DTOs\StatementsAPI\Responses\StatementTransactions\TransactionReadRespon
 use App\DTOs\StatementsAPI\Support\StatementsApiClientInterface;
 use App\DTOs\StatementsAPI\Transport\StatementsApiException;
 use App\Services\StatementsAPI\Contracts\OAuth2TokenManagerInterface;
+use App\Traits\InteractsWithDatabaseLog;
 
 /**
  * Application service orchestrating the eight ABSA Statements operations.
@@ -40,21 +41,48 @@ use App\Services\StatementsAPI\Contracts\OAuth2TokenManagerInterface;
  */
 final class StatementService
 {
-    /** The token resolved for the most recent operation (observability/tests). */
+    use InteractsWithDatabaseLog;
+
+    /**
+     * Logger Name
+     *
+     * @var string
+     */
+    protected string $loggerName = 'ABSA API - StatementService';
+    /**
+     * The token resolved for the most recent operation (observability/tests).
+     *
+     * @var string|null
+     */
     private ?string $resolvedToken = null;
 
     public function __construct(
         private readonly StatementsApiClientInterface $client,
         private readonly OAuth2TokenManagerInterface $tokenManager,
-    ) {}
+    )
+    {
 
+    }
+
+    /**
+     * Get Service Health
+     *
+     * @param GetHealthRequestDTO $request
+     * @return HealthResponseDTO
+     */
     public function getHealth(GetHealthRequestDTO $request): HealthResponseDTO
     {
         $this->resolveToken();
-
         return $this->client->getHealth($request);
     }
 
+    /**
+     * Get Balances for all accounts.
+     * Market availability: Pan-Africa
+     *
+     * @param GetBalancesRequestDTO $request
+     * @return BalancesReadResponseDTO
+     */
     public function getBalances(GetBalancesRequestDTO $request): BalancesReadResponseDTO
     {
         $this->resolveToken();
@@ -62,6 +90,13 @@ final class StatementService
         return $this->client->getBalances($request);
     }
 
+    /**
+     * Get Balances for a specific account.
+     * Market availability: Pan-Africa
+     *
+     * @param GetAccountBalancesRequestDTO $request
+     * @return BalancesReadResponseDTO
+     */
     public function getAccountBalances(GetAccountBalancesRequestDTO $request): BalancesReadResponseDTO
     {
         $this->resolveToken();
@@ -69,6 +104,13 @@ final class StatementService
         return $this->client->getAccountBalances($request);
     }
 
+    /**
+     * Get EOD Statements for account-id.
+     * Market Availability: SA-only
+     *
+     * @param GetStatementsRequestDTO $request
+     * @return StatementReadResponseDTO
+     */
     public function getStatements(GetStatementsRequestDTO $request): StatementReadResponseDTO
     {
         $this->resolveToken();
@@ -76,6 +118,13 @@ final class StatementService
         return $this->client->getStatements($request);
     }
 
+    /**
+     * Get EOD Statement for account-id and statement-id.
+     * Market Availability: SA-only
+     *
+     * @param GetStatementRequestDTO $request
+     * @return StatementReadResponseDTO
+     */
     public function getStatement(GetStatementRequestDTO $request): StatementReadResponseDTO
     {
         $this->resolveToken();
@@ -83,6 +132,13 @@ final class StatementService
         return $this->client->getStatement($request);
     }
 
+    /**
+     * Get EOD Transactions for account-id and statement-id.
+     * Market Availability: SA-only
+     *
+     * @param GetStatementTransactionsRequestDTO $request
+     * @return TransactionReadResponseDTO
+     */
     public function getStatementTransactions(GetStatementTransactionsRequestDTO $request): TransactionReadResponseDTO
     {
         $this->resolveToken();
@@ -90,6 +146,13 @@ final class StatementService
         return $this->client->getStatementTransactions($request);
     }
 
+    /**
+     * Get All EOD Statements.
+     * Market Availability: SA-only
+     *
+     * @param GetAllStatementsRequestDTO $request
+     * @return StatementReadResponseDTO
+     */
     public function getAllStatements(GetAllStatementsRequestDTO $request): StatementReadResponseDTO
     {
         $this->resolveToken();
@@ -97,6 +160,13 @@ final class StatementService
         return $this->client->getAllStatements($request);
     }
 
+    /**
+     * Get Today's Intra-Day Statement
+     * Market Availability: All African Countries excluding
+     *
+     * @param GetIntraDayStatementRequestDTO $request
+     * @return TransactionReadResponseDTO
+     */
     public function getIntraDayStatement(GetIntraDayStatementRequestDTO $request): TransactionReadResponseDTO
     {
         $this->resolveToken();
@@ -108,6 +178,7 @@ final class StatementService
      * The token resolved for the most recent operation, or `null` when no
      * operation has run yet. Exposed so wiring / tests can confirm the active
      * credential that feeds the transport's `apiKey` seam.
+     * @return string|null
      */
     public function resolvedToken(): ?string
     {
@@ -118,6 +189,7 @@ final class StatementService
      * Resolve a valid bearer token from the credential manager before the
      * outbound call executes (ADR-001). Any acquisition failure surfaces as a
      * {@see StatementsApiException}-style typed error from the manager itself.
+     * @return void
      */
     private function resolveToken(): void
     {

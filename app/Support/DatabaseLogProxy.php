@@ -5,7 +5,7 @@ namespace App\Support;
 use Illuminate\Support\Facades\Log;
 
 /**
- * @method void debug(string $message, array $context = [])
+ * @method void debug(string|array $message, array $context = [])
  * @method void info(string $message, array $context = [])
  * @method void notice(string $message, array $context = [])
  * @method void warning(string $message, array $context = [])
@@ -14,9 +14,9 @@ use Illuminate\Support\Facades\Log;
  * @method void alert(string $message, array $context = [])
  * @method void emergency(string $message, array $context = [])
  */
-class DatabaseLogProxy
+readonly class DatabaseLogProxy
 {
-    public function __construct(private readonly string $loggerName) {}
+    public function __construct(private string $loggerName) {}
 
     public function __call(string $method, array $parameters): mixed
     {
@@ -49,6 +49,10 @@ class DatabaseLogProxy
             '_file'  => $callerFile,
             '_line'  => $callerLine,
         ], $context);
+
+        if(is_array($message)) {
+            $message = json_encode($message, JSON_PRETTY_PRINT);
+        }
 
         return Log::channel('log_stack')->{$method}($message, $context);
     }

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\StatementsAPI;
 use App\DTOs\StatementsAPI\Requests\GetHealthRequestDTO;
 use App\Http\Controllers\Controller;
 use App\Services\StatementsAPI\StatementService;
+use App\Traits\InteractsWithDatabaseLog;
 use Illuminate\Http\JsonResponse;
 
 /**
@@ -16,14 +17,24 @@ use Illuminate\Http\JsonResponse;
  */
 final class HealthController extends Controller
 {
-    public function __construct(
-        private readonly StatementService $statements,
-    ) {}
+    use InteractsWithDatabaseLog;
 
+    /**
+     * Logger Name
+     *
+     * @var string
+     */
+    protected string $loggerName = 'ABSA API - Health Controller';
+    public function __construct(private readonly StatementService $statements)
+    {}
+
+    /**
+     * Return the health status
+     *
+     * @return JsonResponse
+     */
     public function index(): JsonResponse
     {
-        return response()->json(
-            $this->statements->getHealth(new GetHealthRequestDTO)->toArray(),
-        );
+        return response()->json($this->statements->getHealth(new GetHealthRequestDTO)->toArray());
     }
 }

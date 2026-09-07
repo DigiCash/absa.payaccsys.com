@@ -8,11 +8,15 @@ use App\DTOs\StatementsAPI\Transport\StatementsApiClientConfig;
 use App\Services\StatementsAPI\Contracts\OAuth2TokenManagerInterface;
 use App\Services\StatementsAPI\OAuth2TokenManager;
 use App\Services\StatementsAPI\StatementService;
+use App\Traits\InteractsWithDatabaseLog;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
+    use InteractsWithDatabaseLog;
+
+    protected string $loggerName = 'ABSA API - AppServiceProvider';
     /**
      * Register any application services.
      */
@@ -25,7 +29,14 @@ class AppServiceProvider extends ServiceProvider
 
         // Credentials — OAuth2 Client Credentials with the static-key fallback.
         $this->app->bind(OAuth2TokenManagerInterface::class, function (): OAuth2TokenManager {
-            return OAuth2TokenManager::fromConfig();
+
+            $OAuth2TokenManager = OAuth2TokenManager::fromConfig();
+            $this->logDb->debug(
+                'OAuth2TokenManager initialized',
+                $OAuth2TokenManager->toLogContext()
+            );
+
+            return $OAuth2TokenManager;
         });
 
         // Application service — composes the client + credential manager.

@@ -8,6 +8,8 @@ use App\DTOs\StatementsAPI\Errors\ErrorResponseDTO;
 use App\DTOs\StatementsAPI\Responses\OAuth\OAuthTokenResponseDTO;
 use App\DTOs\StatementsAPI\Transport\TokenAcquisitionException;
 use App\Services\StatementsAPI\Contracts\OAuth2TokenManagerInterface;
+use App\Traits\InteractsWithDatabaseLog;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
@@ -30,11 +32,28 @@ use Illuminate\Support\Facades\Http;
  */
 final class OAuth2TokenManager implements OAuth2TokenManagerInterface
 {
-    /** Default cache key, mirroring `config('absa.statements.token_cache_key')`. */
+    use InteractsWithDatabaseLog;
+
+    /**
+     * Default cache key, mirroring `config('absa.statements.token_cache_key')`.
+     *
+     * @var string
+     */
     private const string DEFAULT_CACHE_KEY = 'absa.statements.oauth_token';
 
-    /** Default safety buffer (seconds) subtracted from `expires_in`. */
+    /**
+     * Default safety buffer (seconds) subtracted from `expires_in`.
+     *
+     * @var int
+     */
     private const int DEFAULT_TTL_BUFFER = 60;
+
+    /**
+     * Logger Name
+     *
+     * @var string
+     */
+    protected string $loggerName = 'ABSA API - OAuth2TokenManager';
 
     public function __construct(
         private readonly ?string $oauthTokenUrl = null,
@@ -71,11 +90,13 @@ final class OAuth2TokenManager implements OAuth2TokenManagerInterface
         $cached = Cache::get($this->tokenCacheKey);
 
         if (is_string($cached) && $cached !== '') {
+            $this->logDb->debug('Returning cached token');
             return $cached;
         }
 
         // 2. No OAuth credentials → static api_key fallback (no HTTP, no cache).
         if ($this->clientId === null || $this->clientSecret === null) {
+            $this->logDb->debug('Returning static key fallback');
             return $this->resolveApiKeyFallback();
         }
 
@@ -102,9 +123,19 @@ final class OAuth2TokenManager implements OAuth2TokenManagerInterface
     /**
      * POST the Client Credentials grant, parse the token, cache it for the
      * remaining lifetime and return the access token.
+     * @throws ConnectionException
      */
     private function acquireAndCache(): string
     {
+        $this->logDb->debug('Acquiring New token...',
+            [
+                'authTokenURL' => $this->oauthTokenUrl,
+                'grant_type' => 'client_credentials',
+                'client_id' => $this->clientId,
+                'client_secret' => $this->clientSecret,
+            ]
+        );
+
         $response = Http::asForm()->post($this->oauthTokenUrl, [
             'grant_type' => 'client_credentials',
             'client_id' => $this->clientId,
@@ -135,6 +166,7 @@ final class OAuth2TokenManager implements OAuth2TokenManagerInterface
             Cache::put($this->tokenCacheKey, $dto->accessToken, $ttl);
         }
 
+        $this->logDb->debug('Access Token: ' . $dto->accessToken);
         return $dto->accessToken;
     }
 
@@ -155,5 +187,24 @@ final class OAuth2TokenManager implements OAuth2TokenManagerInterface
         $body = $response->json();
 
         return is_array($body) ? ErrorResponseDTO::fromArray($body) : null;
+    }
+
+    /**
+     * Keep the context for logging purposes.
+     * Not really necessary, but let's do this through
+     * the development lifecycle
+     *
+     * @return array
+     */
+    public function toLogContext(): array
+    {
+        return [
+            'oauth_token_url'  => $this->oauthTokenUrl,
+            'client_id'        => $this->clientId,
+            'token_cache_key'  => $this->tokenCacheKey,
+            'token_ttl_buffer' => $this->tokenTtlBuffer,
+            'has_client_secret' => !empty($this->clientSecret),
+            'has_api_key'       => !empty($this->apiKey),
+        ];
     }
 }
