@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Jobs\StatementsAPI\RecordApiAuditLog;
 use App\Services\StatementsAPI\Support\AuditLogSanitizer;
+use App\Traits\InteractsWithDatabaseLog;
 use Closure;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,15 @@ use Illuminate\Http\Response;
  */
 class ApiAuditLogger
 {
+    use InteractsWithDatabaseLog;
+
+    /**
+     * Logger Name
+     *
+     * @var string
+     */
+    protected string $loggerName = 'ABSA API - ApiAuditLogger';
+
     /**
      * Handle an incoming request.
      *
@@ -42,23 +52,28 @@ class ApiAuditLogger
         $sanitizedRequest = $sanitizer->sanitize($request->headers->all(), $request->request->all());
         $sanitizedResponse = $sanitizer->sanitizeResponse($response);
 
-        // Dispatch the audit record job for async processing
-        RecordApiAuditLog::dispatch(
-            correlationId: $request->header('X-Request-ID') ?? $request->getRequestUri(),
-            direction: 'inbound_facade',
-            service: 'statements',
-            method: $request->method(),
-            endpoint: $request->fullUrl(),
-            requestHeaders: $request->headers->all(),
-            requestPayload: $request->request->all(),
-            responseStatus: $response->getStatusCode(),
-            responsePayload: json_decode($response->getContent(), true) ?? [],
-            latencyMs: null,
-            exceptionDetails: [],
-            sanitizedRequest: $sanitizedRequest,
-            sanitizedResponse: $sanitizedResponse,
-            ipAddress: (string) $request->ip(),
-            userAgent: $request->userAgent() ?? '',
-        );
+        try {
+            // Dispatch the audit record job for async processing
+            RecordApiAuditLog::dispatch(
+                correlationId: $request->header('X-Request-ID') ?? $request->getRequestUri(),
+                direction: 'inbound_facade',
+                service: 'statements',
+                method: $request->method(),
+                endpoint: $request->fullUrl(),
+                requestHeaders: $request->headers->all(),
+                requestPayload: $request->request->all(),
+                responseStatus: $response->getStatusCode(),
+                responsePayload: json_decode($response->getContent(), true) ?? [],
+                latencyMs: null,
+                exceptionDetails: [],
+                sanitizedRequest: $sanitizedRequest,
+                sanitizedResponse: $sanitizedResponse,
+                ipAddress: (string) $request->ip(),
+                userAgent: $request->userAgent() ?? '',
+            );
+        } catch (\Throwable $e) {
+            $this->logDb->error($e->getMessage(), ['trace' => $e->getTraceAsString()]);
+        }
+
     }
 }

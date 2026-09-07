@@ -6,8 +6,12 @@ use App\Http\Middleware\ApiAuditLogger;
 use App\Jobs\StatementsAPI\RecordApiAuditLog;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Queue;
+use Mockery;
 use Tests\TestCase;
+use Illuminate\Support\Facades\Log;
+
 
 /**
  * Feature tests for `ApiAuditLogger` middleware (integration with queue/job).
@@ -179,4 +183,31 @@ class ApiAuditLoggerTest extends TestCase
             return true;
         }, 2);
     }
+
+    public function test_middleware_logs_debug_details_when_queue_dispatch_fails(): void
+    {
+        Bus::shouldReceive('dispatch')
+            ->once()
+            ->andThrow(new \Exception('Database connection dropped'));
+
+        // Create an untyped mock instead of mocking DatabaseLogProxy directly
+        $loggerMock = \Mockery::mock();
+        $loggerMock->shouldReceive('error')
+            ->once()
+            ->with('Database connection dropped', \Mockery::type('array'));
+
+        $middleware = new ApiAuditLogger;
+        $middleware->logDb = $loggerMock; // Dynamic override bypasses __get()
+
+        $request = Request::create('/health');
+        $response = new Response('OK', 200);
+
+        $result = $middleware->handle($request, fn () => $response);
+
+        expect($result)->toBe($response);
+    }
+
+
+
+
 }

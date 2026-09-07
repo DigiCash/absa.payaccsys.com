@@ -2,7 +2,6 @@
 
 namespace App\Jobs\StatementsAPI;
 
-use App\Traits\InteractsWithDatabaseLog;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -18,7 +17,7 @@ use Illuminate\Support\Str;
  */
 class RecordApiAuditLog implements ShouldBeUnique, ShouldQueue
 {
-    use InteractsWithDatabaseLog, Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     /**
      * The unique ID of this job.
