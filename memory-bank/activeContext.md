@@ -1,7 +1,7 @@
 # Active Context — ABSA API Hub
 
 > Current focus, recent changes, next steps, open decisions. Update after significant changes.
-> Last updated: 2026-09-07.
+> Last updated: 2026-09-08.
 
 ## Current focus
 **Statements API — Application & Domain layer: 100% COMPLETE.** The DTO + transport layers are
@@ -74,6 +74,15 @@ Phase 1 QA role.
   mark completed planning priorities as done, updated *Where To Start*. `README.md` rewritten to keep a
   Laravel focus while making the ABSA hub project purpose explicit and linking to `PROJECT.md`.
   `docs/` dir does NOT yet exist — references to it are target-of-record only.
+- 2026-09-08: **Populated and finalised the Postman collection.** Added the 7 Statements facade
+  endpoints (`GET /api/v1/statements/*` — balances ×2, statements ×3, transactions, intraday) into
+  the previously-empty `StatementsAPI` folder of
+  `POSTMAN_COLLECTION/ABSA API.postman_collection.json`; `/POSTMAN_COLLECTION` removed from
+  `.gitignore` → folder versioned and tracked, documented in `README.md` + `PROJECT.md`. The
+  developer then aligned collection + environment + guide: the `Login` body now uses the simplified
+  `{{USER_EMAIL}}`/`{{USER_PASSWORD}}` (the `_PHOENIX`/`_SUPER`/`BEARER_*` vars are gone) and
+  `APP_URL` carries the `/api/v1` prefix — so every request path (including the older `/login`,
+  `/user`, `/statements/health`) now resolves against the real routes.
 
 ## Next steps (ordered)
 1. **App-M1 — `OAuth2TokenManager` — DONE** (2026-09-03): OAuth2 Client Credentials Grant + Cache
@@ -131,6 +140,14 @@ Phase 1 QA role.
   `uses(TestCase::class)`, while pure-unit tests (no Laravel app) use top-level `it()` only. A plain
   static helper class may remain in a test file (e.g. `BaseDtoTest`) — it is NOT a test case. After
   migrating, Pint (`--dirty`) cleans leftovers (e.g. unused `use` imports, indentation).
+- **Postman collection** (`POSTMAN_COLLECTION/`, versioned from 2026-09-08) mirrors the inbound
+  facade: `Login` auto-captures `ACCESS_TOKEN` into the collection's Bearer auth, the `StatementsAPI`
+  folder holds one `GET` per `/api/v1/statements/*` operation, and `POSTMAN_COLLECTION/README.md` is
+  the usage guide. The key to consistency: **`APP_URL` includes the `/api/v1` prefix** (e.g.
+  `http://absa84.payaccsys.local:8089/api/v1`), so bare request paths like `{{APP_URL}}/login` and
+  `{{APP_URL}}/statements/health` resolve correctly. The `Login` body and the LOCAL environment use
+  the same simplified variables (`USER_EMAIL`, `USER_PASSWORD`, `ACCESS_TOKEN`) — no `BEARER_*` /
+  `_SUPER` / `_PHOENIX` leftovers; do not reintroduce them.
 - `config('absa.statements')` is the config seam (not bare `config('absa')`).
 - `retry_attempts`/`retry_delay_ms` were deferred from M1 to M2/M5 (now implemented in M5).
 - `.agents/skills/` tree is inconsistent/partially broken — remediation required before Phase 1 QA role.

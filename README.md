@@ -109,6 +109,8 @@ You can also watch bite-sized lessons with real-world projects on [Laravel Learn
   governance and status.
 - **[memory-bank](memory-bank/)** — current agent context, progress and
   engineering patterns.
+- **[POSTMAN_COLLECTION](POSTMAN_COLLECTION/)** — Postman collection and LOCAL
+  environment for exercising the AUTH flows and Statements facade endpoints.
 - **[Planning](Planning/)** — proposed, in-progress and planned project work.
 - **[docs](docs/)** — approved and maintained project knowledge.
 
