@@ -1,7 +1,7 @@
 # Active Context — ABSA API Hub
 
 > Current focus, recent changes, next steps, open decisions. Update after significant changes.
-> Last updated: 2026-09-07.
+> Last updated: 2026-09-08.
 
 ## Current focus
 **Statements API — Application & Domain layer: 100% COMPLETE.** The DTO + transport layers are
@@ -74,6 +74,13 @@ Phase 1 QA role.
   mark completed planning priorities as done, updated *Where To Start*. `README.md` rewritten to keep a
   Laravel focus while making the ABSA hub project purpose explicit and linking to `PROJECT.md`.
   `docs/` dir does NOT yet exist — references to it are target-of-record only.
+- 2026-09-08: **Populated the Postman collection.** Added the 7 Statements facade endpoints
+  (`GET /api/v1/statements/*` — balances ×2, statements ×3, transactions, intraday) into the
+  previously-empty `StatementsAPI` folder of `POSTMAN_COLLECTION/ABSA API.postman_collection.json`,
+  matching the existing simple-request style (collection-level bearer auth via `{{ACCESS_TOKEN}}`).
+  `/POSTMAN_COLLECTION` removed from `.gitignore` → folder is now versioned and tracked; the
+  collection is documented in `README.md` + `PROJECT.md`. Pre-existing AUTH/health request URLs
+  (which omit the `api/v1` prefix) left unchanged by developer decision.
 
 ## Next steps (ordered)
 1. **App-M1 — `OAuth2TokenManager` — DONE** (2026-09-03): OAuth2 Client Credentials Grant + Cache
@@ -131,6 +138,11 @@ Phase 1 QA role.
   `uses(TestCase::class)`, while pure-unit tests (no Laravel app) use top-level `it()` only. A plain
   static helper class may remain in a test file (e.g. `BaseDtoTest`) — it is NOT a test case. After
   migrating, Pint (`--dirty`) cleans leftovers (e.g. unused `use` imports, indentation).
+- **Postman collection** (`POSTMAN_COLLECTION/`, versioned from 2026-09-08) mirrors the inbound
+  facade: `Login` auto-captures `ACCESS_TOKEN` into the collection's Bearer auth, and the
+  `StatementsAPI` folder holds one `GET` per `/api/v1/statements/*` operation. The older AUTH/health
+  URLs (`{{APP_URL}}/login`, `/user`, `/statements/health`) omit the `api/v1` prefix — kept as-is by
+  developer decision; they 404 against current routes, so do not "fix" them without approval.
 - `config('absa.statements')` is the config seam (not bare `config('absa')`).
 - `retry_attempts`/`retry_delay_ms` were deferred from M1 to M2/M5 (now implemented in M5).
 - `.agents/skills/` tree is inconsistent/partially broken — remediation required before Phase 1 QA role.

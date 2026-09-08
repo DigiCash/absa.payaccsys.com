@@ -163,6 +163,39 @@ under the `api/v1` prefix, protected by `auth:sanctum`:
 Authenticated hub routes (`routes/api.php`): `POST /api/v1/login` issues a
 Sanctum token, `GET /api/v1/user` returns the authenticated user.
 
+### Postman Collection
+
+`POSTMAN_COLLECTION/` contains an importable Postman workspace for exercising
+the hub API. The folder is versioned (not git-ignored) so it travels with the
+repository.
+
+| File | Purpose |
+| --- | --- |
+| `ABSA API.postman_collection.json` | Requests for the AUTH flows and the Statements facade |
+| `ABSA API LOCAL.postman_environment.json` | Local environment variables |
+
+Collection layout:
+
+- **AUTH** — `Login` (`POST`, stores the response `access_token` into the
+  `ACCESS_TOKEN` environment variable) and `Check User` (`GET` the
+  authenticated user).
+- **StatementsAPI** — one `GET` request per inbound facade operation under
+  `/api/v1/statements/*` (balances, statements, statement transactions,
+  intraday statement).
+- **Get System Health** — `GET` health check.
+
+All Statements requests use the collection-level Bearer authentication
+(`Authorization: Bearer {{ACCESS_TOKEN}}`), which the `Login` test script
+refreshes automatically. Populate the LOCAL environment (`APP_URL`, the
+`USER_*`/`USER_PASSWORD_*` credentials, and optionally the `BEARER_*` tokens)
+before running.
+
+> **Note:** the pre-existing `Login`, `Check User` and `Get System Health`
+> request URLs omit the `api/v1` prefix (e.g. `{{APP_URL}}/login`), matching
+> the collection as originally exported; they are intentionally left
+> unchanged. The Statements facade requests use the full
+> `/api/v1/statements/*` paths.
+
 ---
 
 ## Architecture

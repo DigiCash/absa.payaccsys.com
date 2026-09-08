@@ -1,6 +1,6 @@
 # Progress — ABSA API Hub
 
-> What works, what's left, current status, known issues, decision evolution. Last updated: 2026-09-07.
+> What works, what's left, current status, known issues, decision evolution. Last updated: 2026-09-08.
 
 ## Overall status
 **Phase 0 (Bootstrap/Discovery) → early implementation.** The Phase 0 proposal
@@ -9,7 +9,8 @@ The **Statements API DTO + transport layers are 100% complete and signed off**
 (M0–M6 done 2026-09-01), and **App-M1 (`OAuth2TokenManager`) + App-M2 (`ApiAuditLogger`) +
 App-M3 (`StatementService`) + App-M4 (inbound facade controllers & routes) are all implemented
 + tested** (2026-09-03 / 2026-09-04; full Pest suite **116/116, 627 assertions** on 2026-09-07;
-`php -l` + Pint clean). **All tests are now Pest-native** and **root docs refreshed** (2026-09-07).
+`php -l` + Pint clean). **All tests are now Pest-native**, **root docs refreshed** (2026-09-07),
+and the **Postman collection now covers the full Statements facade** (2026-09-08).
 
 ## What works (verified / reported)
 - **Statements DTO layer** — implemented under `app/DTOs/StatementsAPI/` (~40 files):
@@ -71,6 +72,13 @@ App-M3 (`StatementService`) + App-M4 (inbound facade controllers & routes) are a
   `PHPUnit\Framework\TestCase` remains in `tests/`. `PROJECT.md` updated (status, Application
   Structure table, facade route map, completed priorities); `README.md` rewritten with a Laravel
   focus + explicit ABSA-hub overview + link to `PROJECT.md`.
+- **Postman collection covers the Statements facade (2026-09-08):**
+  `POSTMAN_COLLECTION/` is now versioned (gitignore entry removed) and documented in
+  `README.md`/`PROJECT.md`. The collection contains AUTH (`Login` → sets `ACCESS_TOKEN` in the
+  collection bearer auth, `Check User`), the 7 Statements facade GETs under `/api/v1/statements/*`
+  (balances ×2, statements ×3, transactions, intraday) and `Get System Health`; the LOCAL
+  environment file exposes `APP_URL`, `USER_*`/`USER_PASSWORD_*` credentials, `BEARER_*`,
+  `ACCESS_TOKEN`.
 
 ## What's left to build
 - **M5:** ✅ done 2026-09-01 — mTLS `sslOptions()` mapping (standard Guzzle `cert`/`ssl_key`) + retry-on-5xx/429 tests; see ADR-003.
@@ -163,6 +171,9 @@ App-M3 (`StatementService`) + App-M4 (inbound facade controllers & routes) are a
    in `tests/`); full suite **116/116 (627 assertions)**; `php -l` + Pint clean. Updated `PROJECT.md`
    and `README.md` (project status, application structure/route map, Laravel-focused README linking
    to `PROJECT.md`).
+- **2026-09-08:** Populated the Postman `StatementsAPI` folder with the 7 facade endpoints and
+   removed `/POSTMAN_COLLECTION` from `.gitignore` — the collection is now versioned and documented
+   in `README.md`/`PROJECT.md`.
 
 ## Guardrails in force (G1–G10, from the proposal)
 G1 no source-doc mutation · G2 no DB write without approval · G3 `.env`/secrets protection ·

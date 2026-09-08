@@ -1,6 +1,6 @@
 # Tech Context — ABSA API Hub
 
-> Technologies, dev setup, constraints, dependencies, tool usage. Last updated: 2026-09-07.
+> Technologies, dev setup, constraints, dependencies, tool usage. Last updated: 2026-09-08.
 
 ## 1. Stack
 - **Framework:** Laravel `^13.17` (`laravel/framework` locked).
@@ -13,6 +13,8 @@
 - **Pest** `^5.1` (Pest ≥ 3.0 satisfied), **`laravel/pao`** `^1.1` (required), `nunomaduro/collision ^8.6`,
   `phpunit/phpunit` (locked), `fakerphp/faker ^1.23`, `mockery/mockery ^1.6`.
 - **`laravel/pint`** `^1.27` (formatter/linter), **`laravel/pail`** `^1.2.5` (log viewer).
+- **Postman** (manual API testing): `POSTMAN_COLLECTION/` — collection + LOCAL environment for
+  exercising AUTH and the Statements facade (versioned from 2026-09-08).
 - **NOT installed:** `laravel/boost` (README recommends it — open question Q-1); no Passport/JWT;
   no dedicated HTTP client (native `Illuminate\Http\Client` only); no queue-worker config beyond defaults.
 - **Domain package:** `payaccsys/laravel-db-logger: dev-main` from private VCS
