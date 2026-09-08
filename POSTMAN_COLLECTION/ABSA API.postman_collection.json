@@ -1,293 +1,293 @@
 {
-  "info": {
-    "_postman_id": "7306e502-da7b-4f59-8ae1-2f27f2da0761",
-    "name": "ABSA API",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "11998326"
-  },
-  "item": [
-    {
-      "name": "AUTH",
-      "item": [
+    "info": {
+        "_postman_id": "7306e502-da7b-4f59-8ae1-2f27f2da0761",
+        "name": "ABSA API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+        "_exporter_id": "11998326"
+    },
+    "item": [
         {
-          "name": "Login",
-          "event": [
+            "name": "AUTH",
+            "item": [
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "const jsonResponse = pm.response.json();",
+                                    "",
+                                    "if (jsonResponse.access_token) {",
+                                    "    pm.environment.set(\"ACCESS_TOKEN\", jsonResponse.access_token);",
+                                    "}"
+                                ],
+                                "type": "text/javascript",
+                                "packages": {},
+                                "requests": {}
+                            }
+                        }
+                    ],
+                    "request": {
+                        "auth": {
+                            "type": "noauth"
+                        },
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"email\": \"{{USER_EMAIL}}\",\n  \"password\": \"{{USER_PASSWORD}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{APP_URL}}/login",
+                            "host": [
+                                "{{APP_URL}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Check User",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{APP_URL}}/user",
+                            "host": [
+                                "{{APP_URL}}"
+                            ],
+                            "path": [
+                                "user"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "StatementsAPI",
+            "item": [
+                {
+                    "name": "Get Balances",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{APP_URL}}/statements/balances",
+                            "host": [
+                                "{{APP_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "statements",
+                                "balances"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Account Balance",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/balances",
+                            "host": [
+                                "{{APP_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "statements",
+                                "accounts",
+                                "{accountId}",
+                                "balances"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Statements",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{APP_URL}}/statements",
+                            "host": [
+                                "{{APP_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "statements"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Account Statements",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/statements",
+                            "host": [
+                                "{{APP_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "statements",
+                                "accounts",
+                                "{accountId}",
+                                "statements"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Statement",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/statements/{statementId}",
+                            "host": [
+                                "{{APP_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "statements",
+                                "accounts",
+                                "{accountId}",
+                                "statements",
+                                "{statementId}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Statement Transactions",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/statements/{statementId}/transactions",
+                            "host": [
+                                "{{APP_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "statements",
+                                "accounts",
+                                "{accountId}",
+                                "statements",
+                                "{statementId}",
+                                "transactions"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Intraday Statement",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/intraday-statement",
+                            "host": [
+                                "{{APP_URL}}"
+                            ],
+                            "path": [
+                                "api",
+                                "v1",
+                                "statements",
+                                "accounts",
+                                "{accountId}",
+                                "intraday-statement"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Get System Health",
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{APP_URL}}/statements/health",
+                    "host": [
+                        "{{APP_URL}}"
+                    ],
+                    "path": [
+                        "statements",
+                        "health"
+                    ]
+                }
+            },
+            "response": []
+        }
+    ],
+    "auth": {
+        "type": "bearer",
+        "bearer": [
             {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "const jsonResponse = pm.response.json();",
-                  "",
-                  "if (jsonResponse.access_token) {",
-                  "    pm.environment.set(\"ACCESS_TOKEN\", jsonResponse.access_token);",
-                  "}"
-                ],
+                "key": "token",
+                "value": "{{ACCESS_TOKEN}}",
+                "type": "string"
+            }
+        ]
+    },
+    "event": [
+        {
+            "listen": "prerequest",
+            "script": {
                 "type": "text/javascript",
                 "packages": {},
-                "requests": {}
-              }
+                "requests": {},
+                "exec": [
+                    ""
+                ]
             }
-          ],
-          "request": {
-            "auth": {
-              "type": "noauth"
-            },
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json",
-                "type": "text"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{USER_EMAIL_PHOENIX}}\",\n  \"password\": \"{{USER_PASSWORD_PHOENIX}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{APP_URL}}/login",
-              "host": [
-                "{{APP_URL}}"
-              ],
-              "path": [
-                "login"
-              ]
-            }
-          },
-          "response": []
         },
         {
-          "name": "Check User",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{APP_URL}}/user",
-              "host": [
-                "{{APP_URL}}"
-              ],
-              "path": [
-                "user"
-              ]
+            "listen": "test",
+            "script": {
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {},
+                "exec": [
+                    ""
+                ]
             }
-          },
-          "response": []
         }
-      ]
-    },
-    {
-      "name": "StatementsAPI",
-      "item": [
-        {
-          "name": "Get Balances",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{APP_URL}}/statements/balances",
-              "host": [
-                "{{APP_URL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "statements",
-                "balances"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Account Balance",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{APP_URL}}/statements/accounts/{accountId}/balances",
-              "host": [
-                "{{APP_URL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "statements",
-                "accounts",
-                "{accountId}",
-                "balances"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get All Statements",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{APP_URL}}/statements",
-              "host": [
-                "{{APP_URL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "statements"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Account Statements",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{APP_URL}}/statements/accounts/{accountId}/statements",
-              "host": [
-                "{{APP_URL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "statements",
-                "accounts",
-                "{accountId}",
-                "statements"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Statement",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{APP_URL}}/statements/accounts/{accountId}/statements/{statementId}",
-              "host": [
-                "{{APP_URL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "statements",
-                "accounts",
-                "{accountId}",
-                "statements",
-                "{statementId}"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Statement Transactions",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{APP_URL}}/statements/accounts/{accountId}/statements/{statementId}/transactions",
-              "host": [
-                "{{APP_URL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "statements",
-                "accounts",
-                "{accountId}",
-                "statements",
-                "{statementId}",
-                "transactions"
-              ]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Get Intraday Statement",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{APP_URL}}/statements/accounts/{accountId}/intraday-statement",
-              "host": [
-                "{{APP_URL}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "statements",
-                "accounts",
-                "{accountId}",
-                "intraday-statement"
-              ]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "Get System Health",
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{APP_URL}}/statements/health",
-          "host": [
-            "{{APP_URL}}"
-          ],
-          "path": [
-            "statements",
-            "health"
-          ]
-        }
-      },
-      "response": []
-    }
-  ],
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{ACCESS_TOKEN}}",
-        "type": "string"
-      }
     ]
-  },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "packages": {},
-        "requests": {},
-        "exec": [
-          ""
-        ]
-      }
-    },
-    {
-      "listen": "test",
-      "script": {
-        "type": "text/javascript",
-        "packages": {},
-        "requests": {},
-        "exec": [
-          ""
-        ]
-      }
-    }
-  ]
 }
