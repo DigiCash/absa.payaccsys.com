@@ -73,12 +73,14 @@ and the **Postman collection now covers the full Statements facade** (2026-09-08
   Structure table, facade route map, completed priorities); `README.md` rewritten with a Laravel
   focus + explicit ABSA-hub overview + link to `PROJECT.md`.
 - **Postman collection covers the Statements facade (2026-09-08):**
-  `POSTMAN_COLLECTION/` is now versioned (gitignore entry removed) and documented in
-  `README.md`/`PROJECT.md`. The collection contains AUTH (`Login` → sets `ACCESS_TOKEN` in the
-  collection bearer auth, `Check User`), the 7 Statements facade GETs under `/api/v1/statements/*`
-  (balances ×2, statements ×3, transactions, intraday) and `Get System Health`; the LOCAL
-  environment file exposes `APP_URL`, `USER_*`/`USER_PASSWORD_*` credentials, `BEARER_*`,
-  `ACCESS_TOKEN`.
+  `POSTMAN_COLLECTION/` is versioned (gitignore entry removed), documented in `README.md`/`PROJECT.md`
+  and shipped with a usage guide (`POSTMAN_COLLECTION/README.md`). The collection contains AUTH
+  (`Login` → sets `ACCESS_TOKEN` in the collection bearer auth, `Check User`), the 7 Statements
+  facade GETs under `/api/v1/statements/*` (balances ×2, statements ×3, transactions, intraday) and
+  `Get System Health`. The LOCAL environment (`ABSA API LOCAL.postman_environment.json`) is
+  simplified to `APP_URL` (carrying the `/api/v1` base, e.g.
+  `http://absa84.payaccsys.local:8089/api/v1`), `USER_EMAIL`, `USER_PASSWORD` and `ACCESS_TOKEN` —
+  the `Login` request body uses the same `{{USER_EMAIL}}`/`{{USER_PASSWORD}}` placeholders.
 
 ## What's left to build
 - **M5:** ✅ done 2026-09-01 — mTLS `sslOptions()` mapping (standard Guzzle `cert`/`ssl_key`) + retry-on-5xx/429 tests; see ADR-003.
@@ -174,6 +176,11 @@ and the **Postman collection now covers the full Statements facade** (2026-09-08
 - **2026-09-08:** Populated the Postman `StatementsAPI` folder with the 7 facade endpoints and
    removed `/POSTMAN_COLLECTION` from `.gitignore` — the collection is now versioned and documented
    in `README.md`/`PROJECT.md`.
+- **2026-09-08 (same day):** developer finalised the Postman files — `Login` body now uses the
+   simplified `{{USER_EMAIL}}`/`{{USER_PASSWORD}}` (dropped `_PHOENIX`/`_SUPER`/`BEARER_*` env vars),
+   `APP_URL` includes the `/api/v1` prefix so all request paths resolve, and
+   `POSTMAN_COLLECTION/README.md` was expanded into a full usage guide (layout, auth, variables,
+   troubleshooting).
 
 ## Guardrails in force (G1–G10, from the proposal)
 G1 no source-doc mutation · G2 no DB write without approval · G3 `.env`/secrets protection ·

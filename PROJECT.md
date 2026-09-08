@@ -184,17 +184,15 @@ Collection layout:
   intraday statement).
 - **Get System Health** — `GET` health check.
 
-All Statements requests use the collection-level Bearer authentication
+All requests use the collection-level Bearer authentication
 (`Authorization: Bearer {{ACCESS_TOKEN}}`), which the `Login` test script
 refreshes automatically. Populate the LOCAL environment (`APP_URL`, the
-`USER_*`/`USER_PASSWORD_*` credentials, and optionally the `BEARER_*` tokens)
-before running.
+`USER_EMAIL`/`USER_PASSWORD` credentials) before running.
 
-> **Note:** the pre-existing `Login`, `Check User` and `Get System Health`
-> request URLs omit the `api/v1` prefix (e.g. `{{APP_URL}}/login`), matching
-> the collection as originally exported; they are intentionally left
-> unchanged. The Statements facade requests use the full
-> `/api/v1/statements/*` paths.
+`APP_URL` in the LOCAL environment includes the `/api/v1` prefix (e.g.
+`http://absa84.payaccsys.local:8089/api/v1`), so the same `{{APP_URL}}/*`
+paths work for `Login`/`Check User`, the Statements facade, and `Get System
+Health`.
 
 ---
 
