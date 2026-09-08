@@ -141,6 +141,7 @@ class RecordApiAuditLog implements ShouldBeUnique, ShouldQueue
 
     /**
      * Execute the job.
+     * @throws \JsonException
      */
     public function handle(): void
     {
@@ -153,14 +154,14 @@ class RecordApiAuditLog implements ShouldBeUnique, ShouldQueue
             'method' => $this->method,
             'endpoint' => $this->endpoint,
             // Only sanitized data is persisted (secrets/PII already redacted).
-            'request_headers' => json_encode($this->sanitizedRequest['headers'] ?? []),
-            'request_payload' => json_encode($this->sanitizedRequest['payload'] ?? []),
+            'request_headers' => json_encode($this->sanitizedRequest['headers'] ?? [], JSON_THROW_ON_ERROR),
+            'request_payload' => json_encode($this->sanitizedRequest['payload'] ?? [], JSON_THROW_ON_ERROR),
             'response_status' => $this->responseStatus,
             'response_payload' => isset($this->sanitizedResponse['body'])
-                ? json_encode($this->sanitizedResponse['body'])
+                ? json_encode($this->sanitizedResponse['body'], JSON_THROW_ON_ERROR)
                 : null,
             'latency_ms' => $this->latencyMs,
-            'exception_details' => json_encode($this->exceptionDetails),
+            'exception_details' => json_encode($this->exceptionDetails, JSON_THROW_ON_ERROR),
             'environment' => (string) config('absa.environment', 'sandbox'),
             'created_at' => now(),
             'updated_at' => now(),

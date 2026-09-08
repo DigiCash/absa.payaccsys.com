@@ -6,13 +6,13 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * @method void debug(string|array $message, array $context = [])
- * @method void info(string $message, array $context = [])
- * @method void notice(string $message, array $context = [])
- * @method void warning(string $message, array $context = [])
- * @method void error(string $message, array $context = [])
- * @method void critical(string $message, array $context = [])
- * @method void alert(string $message, array $context = [])
- * @method void emergency(string $message, array $context = [])
+ * @method void info(string|array $message, array $context = [])
+ * @method void notice(string|array $message, array $context = [])
+ * @method void warning(string|array $message, array $context = [])
+ * @method void error(string|array $message, array $context = [])
+ * @method void critical(string|array $message, array $context = [])
+ * @method void alert(string|array $message, array $context = [])
+ * @method void emergency(string|array $message, array $context = [])
  */
 readonly class DatabaseLogProxy
 {
@@ -49,10 +49,6 @@ readonly class DatabaseLogProxy
             '_file'  => $callerFile,
             '_line'  => $callerLine,
         ], $context);
-
-        if(is_array($message)) {
-            $message = json_encode($message, JSON_PRETTY_PRINT);
-        }
 
         return Log::channel('log_stack')->{$method}($message, $context);
     }
