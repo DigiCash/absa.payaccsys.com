@@ -110,6 +110,9 @@ You can also watch bite-sized lessons with real-world projects on [Laravel Learn
 
 - **[PROJECT.md](PROJECT.md)** — project scope, architecture, databases,
   governance and status.
+- **[docs/apis/statements/openapi.json](docs/apis/statements/openapi.json)** —
+  OpenAPI V3 (3.1.0) specification for the inbound Statements facade
+  (auto-generated, with verified response schemas).
 - **[memory-bank](memory-bank/)** — current agent context, progress and
   engineering patterns.
 - **[POSTMAN_COLLECTION](POSTMAN_COLLECTION/)** — Postman collection and LOCAL

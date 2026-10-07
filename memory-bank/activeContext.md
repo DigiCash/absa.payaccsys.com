@@ -48,6 +48,16 @@ the wire → 404s). Next outward steps remain PayShap / AVS.
   tests / 65 assertions (`tests/Feature/StatementsAPI/*`).
 
 ## Recent changes (per planning docs; verify before relying on)
+- 2026-10-06 (**round 5, same day): inbound OpenAPI V3 documentation.** Added `dedoc/scramble`
+  `^0.13.47` (Composer; auto-generates OpenAPI 3.1 from controllers/Form Requests/routes).
+  Published to `config/scramble.php` (api_path `api`, `security_strategy` =
+  `MiddlewareAuthSecurityStrategy` → bearer security doc; docs UI gated by `RestrictedDocsAccess`,
+  local-env only). Exported to `docs/apis/statements/openapi.json` (10 operations: login, user, 8×
+  statements). Response-schema enrichment via `app/Support/StatementsOpenApiSchemas.php` +
+  `docs/apis/statements/enrich_openapi.php` (verified schemas + per-operation 200 `$ref`s). README +
+  PROJECT.md link it. **Regeneration:** `scramble:export --path=docs/apis/statements/openapi.json`
+  then `php -r 'require "./vendor/autoload.php"; require "./docs/apis/statements/enrich_openapi.php";'`.
+  Full suite 117/117 (636), Pint clean. `match` default arm is **`default =>`** (PHP 8.4, not `_`).
 - 2026-10-06 (**round 4, same day): root docs refreshed.** `README.md` now mentions the outbound
   OAuth2 Resource Owner Password grant (`OAuth2TokenManager`, cached + auto-refreshed, mTLS);
   `PROJECT.md` test count updated to ~117 / ~636, the Statements implementation-status block gained

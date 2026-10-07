@@ -83,7 +83,8 @@ Planning location:
 
 Approved documentation:
 
-`docs/apis/statements/`
+`docs/apis/statements/` — including the **inbound OpenAPI V3.1 specification**
+(`openapi.json`, auto-generated via `dedoc/scramble`)
 
 Implementation status:
 

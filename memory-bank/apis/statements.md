@@ -5,6 +5,8 @@
 
 ## Source of truth
 - **Spec:** `_StatementsAPI_/Statements_Facade_API_Swagger_20250910.yml` (OpenAPI 3.0.1) — **read-only**.
+- **Inbound facade OpenAPI V3.1:** `docs/apis/statements/openapi.json` (auto-generated via
+  `dedoc/scramble` + response-schema enrichment; interactive UI at `/docs/api` in local env).
 - **Derived plans:** `Planning/03_APIS/STATEMENTS/dto-plan.md` (approved 2026-08-26),
   `Planning/03_APIS/STATEMENTS/client-transport-plan.md` (M0–M6 done, signed off 2026-09-01).
 - **Namespace:** `App\DTOs\StatementsAPI`. **Config seam:** `config('absa.statements')`.
