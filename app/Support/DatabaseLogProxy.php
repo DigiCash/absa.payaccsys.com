@@ -5,18 +5,18 @@ namespace App\Support;
 use Illuminate\Support\Facades\Log;
 
 /**
- * @method void debug(string $message, array $context = [])
- * @method void info(string $message, array $context = [])
- * @method void notice(string $message, array $context = [])
- * @method void warning(string $message, array $context = [])
- * @method void error(string $message, array $context = [])
- * @method void critical(string $message, array $context = [])
- * @method void alert(string $message, array $context = [])
- * @method void emergency(string $message, array $context = [])
+ * @method void debug(string|array $message, array $context = [])
+ * @method void info(string|array $message, array $context = [])
+ * @method void notice(string|array $message, array $context = [])
+ * @method void warning(string|array $message, array $context = [])
+ * @method void error(string|array $message, array $context = [])
+ * @method void critical(string|array $message, array $context = [])
+ * @method void alert(string|array $message, array $context = [])
+ * @method void emergency(string|array $message, array $context = [])
  */
-class DatabaseLogProxy
+readonly class DatabaseLogProxy
 {
-    public function __construct(private readonly string $loggerName) {}
+    public function __construct(private string $loggerName) {}
 
     public function __call(string $method, array $parameters): mixed
     {
