@@ -22,16 +22,17 @@ use Tests\TestCase;
  *
  * Covered behaviours:
  *   1. Cache hit short-circuits and returns the token without any HTTP call.
- *   2. Cache miss POSTs the Client Credentials grant, returns the token and
- *      caches it for the remaining lifetime.
- *   3. With no OAuth credentials the static `api_key` is returned as-is (no
- *      HTTP, no cache write).
+ *   2. Cache miss POSTs the Resource Owner Password grant
+ *      (`grant_type=password` with `client_id`, `scope`, `username`,
+ *      `password`), returns the token and caches it for the remaining lifetime.
+ *   3. With no OAuth password-grant credentials a `TokenAcquisitionException`
+ *      is thrown — there is no static-key fallback.
  *   4. A token whose remaining lifetime is within the TTL buffer is not cached,
  *      so the next call proactively re-acquires.
  *   5. A non-2xx token response is reported as a `TokenAcquisitionException`
  *      carrying the status and decoded error body.
- *   6. With no credential at all (no OAuth creds, no `api_key`) a
- *       `TokenAcquisitionException` with status 0 is thrown.
+ *   6. When mTLS cert material is configured, the token request completes with
+ *      the client-certificate options applied.
  */
 uses(TestCase::class);
 
@@ -116,7 +117,9 @@ it('returns a cached token without making an HTTP request', function () {
     $manager = new OAuth2TokenManager(
         oauthTokenUrl: TOKEN_URL,
         clientId: 'client-id',
-        clientSecret: 'client-secret',
+        scope: 'bifrost-gateway',
+        username: 'absa-user',
+        password: 's3cr3t',
         tokenCacheKey: CACHE_KEY,
     );
 
@@ -126,7 +129,7 @@ it('returns a cached token without making an HTTP request', function () {
 });
 
 // ---------------------------------------------------------------------------
-// 2. Cache miss → POST Client Credentials, return + cache the token
+// 2. Cache miss → POST Resource Owner Password grant, return + cache the token
 // ---------------------------------------------------------------------------
 it('acquires a token over HTTP on a cache miss and caches it', function () {
     Http::fake(fn (Request $request) => Http::response(tokenResponse('fresh-token-xyz', 3600), 200));
@@ -134,39 +137,52 @@ it('acquires a token over HTTP on a cache miss and caches it', function () {
     $manager = new OAuth2TokenManager(
         oauthTokenUrl: TOKEN_URL,
         clientId: 'client-id',
-        clientSecret: 'client-secret',
+        scope: 'bifrost-gateway',
+        username: 'absa-user',
+        password: 's3cr3t',
         tokenCacheKey: CACHE_KEY,
     );
 
     expect($manager->getValidToken())->toBe('fresh-token-xyz');
 
     Http::assertSent(function (Request $request) {
+        $body = (string) $request->body();
+
         return $request->method() === 'POST'
              && str_contains($request->url(), 'oauth/token')
-             && str_contains((string) $request->body(), 'grant_type=client_credentials');
+             && str_contains($body, 'grant_type=password')
+             && str_contains($body, 'client_id=client-id')
+             && str_contains($body, 'scope=bifrost-gateway')
+             && str_contains($body, 'username=absa-user')
+             && str_contains($body, 'password=s3cr3t')
+             && ! str_contains($body, 'client_secret');
     });
 
     expect(Cache::get(CACHE_KEY))->toBe('fresh-token-xyz');
 });
 
 // ---------------------------------------------------------------------------
-// 3. No OAuth credentials → static api_key fallback (no HTTP, no cache)
+// 3. No OAuth credentials → TokenAcquisitionException (no static fallback)
 // ---------------------------------------------------------------------------
-it('falls back to the static api_key when OAuth credentials are absent', function () {
+it('throws a TokenAcquisitionException when OAuth password-grant credentials are missing', function () {
     Http::fake();
 
     $manager = new OAuth2TokenManager(
         oauthTokenUrl: TOKEN_URL,
         clientId: null,
-        clientSecret: null,
-        apiKey: 'sk_test_statements',
+        username: null,
+        password: null,
         tokenCacheKey: CACHE_KEY,
     );
 
-    expect($manager->getValidToken())->toBe('sk_test_statements');
+    $exception = expectTokenAcquisitionException(
+        fn () => $manager->getValidToken(),
+        0,
+    );
 
+    expect($exception->status)->toBe(0);
+    expect($exception->error)->toBeNull();
     Http::assertNothingSent();
-    expect(Cache::get(CACHE_KEY))->toBeNull();
 });
 
 // ---------------------------------------------------------------------------
@@ -180,7 +196,9 @@ it('does not cache a near-expiry token so the next call re-acquires', function (
     $manager = new OAuth2TokenManager(
         oauthTokenUrl: TOKEN_URL,
         clientId: 'client-id',
-        clientSecret: 'client-secret',
+        scope: 'bifrost-gateway',
+        username: 'absa-user',
+        password: 's3cr3t',
         tokenCacheKey: CACHE_KEY,
         tokenTtlBuffer: 60,
     );
@@ -205,7 +223,9 @@ it('throws a TokenAcquisitionException on a non-2xx token response', function ()
     $manager = new OAuth2TokenManager(
         oauthTokenUrl: TOKEN_URL,
         clientId: 'client-id',
-        clientSecret: 'client-secret',
+        scope: 'bifrost-gateway',
+        username: 'absa-user',
+        password: 's3cr3t',
         tokenCacheKey: CACHE_KEY,
     );
 
@@ -221,25 +241,28 @@ it('throws a TokenAcquisitionException on a non-2xx token response', function ()
 });
 
 // ---------------------------------------------------------------------------
-// 6. No credential at all → TokenAcquisitionException with status 0
+// 6. mTLS cert configured → token request completes with options applied
 // ---------------------------------------------------------------------------
-it('throws a TokenAcquisitionException when no credential is available at all', function () {
-    Http::fake();
+it('applies the configured mTLS certificate options to the token request', function () {
+    Http::fake(fn (Request $request) => Http::response(tokenResponse('mtls-token-abc', 3600), 200));
 
     $manager = new OAuth2TokenManager(
         oauthTokenUrl: TOKEN_URL,
-        clientId: null,
-        clientSecret: null,
-        apiKey: null,
+        clientId: 'client-id',
+        scope: 'bifrost-gateway',
+        username: 'absa-user',
+        password: 's3cr3t',
+        certPath: '/tmp/certs/absa.p12',
+        certPassphrase: 's3cr3t',
         tokenCacheKey: CACHE_KEY,
     );
 
-    $exception = expectTokenAcquisitionException(
-        fn () => $manager->getValidToken(),
-        0,
-    );
+    expect($manager->getValidToken())->toBe('mtls-token-abc');
 
-    expect($exception->status)->toBe(0);
-    expect($exception->error)->toBeNull();
-    Http::assertNothingSent();
+    Http::assertSent(function (Request $request) {
+        return $request->method() === 'POST'
+             && str_contains($request->url(), 'oauth/token');
+    });
+
+    expect(Cache::get(CACHE_KEY))->toBe('mtls-token-abc');
 });

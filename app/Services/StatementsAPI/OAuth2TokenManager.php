@@ -17,18 +17,19 @@ use Illuminate\Support\Facades\Http;
 /**
  * Concrete {@see OAuth2TokenManagerInterface} for the ABSA Statements API.
  *
- * Resolves a usable bearer token for outbound calls, owning the two credential
- * strategies from ADR-001:
+ * Resolves a usable bearer token for outbound calls via the single credential
+ * strategy from ADR-001:
  *
- *  - OAuth2 Client Credentials (RFC 6749): when `client_id` / `client_secret`
- *    are configured, a token is POSTed to `oauth_token_url` and cached under
- *    `token_cache_key` for `expires_in - token_ttl_buffer` seconds, so repeated
- *    calls reuse the cached token instead of hitting the token endpoint.
- *  - Static `api_key` fallback: when OAuth credentials are absent, the static
- *    `api_key` is returned as-is (no HTTP, no cache write).
+ *  - OAuth2 Resource Owner Password Credentials (RFC 6749): when `client_id`,
+ *    `username` and `password` are configured, a token is POSTed
+ *    (`grant_type=password`) to `oauth_token_url` over the mTLS certificate
+ *    (`cert_path` / `passphrase`) and cached under `token_cache_key` for
+ *    `expires_in - token_ttl_buffer` seconds, so repeated calls reuse the
+ *    cached token instead of hitting the token endpoint.
  *
- * A non-2xx token response, an undecodable body, or a missing token with no
- * fallback is reported as a {@see TokenAcquisitionException}.
+ * A non-2xx token response, an undecodable body, or missing password-grant
+ * credentials is reported as a {@see TokenAcquisitionException}. There is no
+ * static-key fallback — ABSA requires a real OAuth2 bearer token.
  */
 final class OAuth2TokenManager implements OAuth2TokenManagerInterface
 {
@@ -50,16 +51,17 @@ final class OAuth2TokenManager implements OAuth2TokenManagerInterface
 
     /**
      * Logger Name
-     *
-     * @var string
      */
     protected string $loggerName = 'ABSA API - OAuth2TokenManager';
 
     public function __construct(
         private readonly ?string $oauthTokenUrl = null,
         private readonly ?string $clientId = null,
-        private readonly ?string $clientSecret = null,
-        private readonly ?string $apiKey = null,
+        private readonly ?string $scope = null,
+        private readonly ?string $username = null,
+        private readonly ?string $password = null,
+        private readonly ?string $certPath = null,
+        private readonly ?string $certPassphrase = null,
         private readonly string $tokenCacheKey = self::DEFAULT_CACHE_KEY,
         private readonly int $tokenTtlBuffer = self::DEFAULT_TTL_BUFFER,
     ) {}
@@ -77,8 +79,11 @@ final class OAuth2TokenManager implements OAuth2TokenManagerInterface
         return new self(
             oauthTokenUrl: isset($data['oauth_token_url']) ? (string) $data['oauth_token_url'] : null,
             clientId: isset($data['client_id']) ? (string) $data['client_id'] : null,
-            clientSecret: isset($data['client_secret']) ? (string) $data['client_secret'] : null,
-            apiKey: isset($data['api_key']) ? (string) $data['api_key'] : null,
+            scope: isset($data['scope']) ? (string) $data['scope'] : null,
+            username: isset($data['username']) ? (string) $data['username'] : null,
+            password: isset($data['password']) ? (string) $data['password'] : null,
+            certPath: isset($data['cert_path']) ? (string) $data['cert_path'] : null,
+            certPassphrase: isset($data['passphrase']) ? (string) $data['passphrase'] : null,
             tokenCacheKey: isset($data['token_cache_key']) ? (string) $data['token_cache_key'] : self::DEFAULT_CACHE_KEY,
             tokenTtlBuffer: isset($data['token_ttl_buffer']) ? (int) $data['token_ttl_buffer'] : self::DEFAULT_TTL_BUFFER,
         );
@@ -91,38 +96,27 @@ final class OAuth2TokenManager implements OAuth2TokenManagerInterface
 
         if (is_string($cached) && $cached !== '') {
             $this->logDb->debug('Returning cached token');
+
             return $cached;
         }
 
-        // 2. No OAuth credentials → static api_key fallback (no HTTP, no cache).
-        if ($this->clientId === null || $this->clientSecret === null) {
-            $this->logDb->debug('Returning static key fallback');
-            return $this->resolveApiKeyFallback();
-        }
-
-        // 3. OAuth2 Client Credentials flow, cached for the remaining lifetime.
-        return $this->acquireAndCache();
-    }
-
-    /**
-     * Resolve the static `api_key` fallback, or fail when no credential at all
-     * is available.
-     */
-    private function resolveApiKeyFallback(): string
-    {
-        if ($this->apiKey === null) {
+        // 2. Missing OAuth password-grant credentials → fail fast (no static
+        //    key fallback — ABSA requires a real OAuth2 token).
+        if ($this->clientId === null || $this->username === null || $this->password === null) {
             throw new TokenAcquisitionException(
                 status: 0,
                 error: null,
             );
         }
 
-        return $this->apiKey;
+        // 3. OAuth2 Resource Owner Password flow, cached for the remaining lifetime.
+        return $this->acquireAndCache();
     }
 
     /**
-     * POST the Client Credentials grant, parse the token, cache it for the
+     * POST the Resource Owner Password grant, parse the token, cache it for the
      * remaining lifetime and return the access token.
+     *
      * @throws ConnectionException
      */
     private function acquireAndCache(): string
@@ -130,17 +124,28 @@ final class OAuth2TokenManager implements OAuth2TokenManagerInterface
         $this->logDb->debug('Acquiring New token...',
             [
                 'authTokenURL' => $this->oauthTokenUrl,
-                'grant_type' => 'client_credentials',
+                'grant_type' => 'password',
                 'client_id' => $this->clientId,
-                'client_secret' => $this->clientSecret,
+                'scope' => $this->scope,
+                'has_username' => $this->username !== null,
+                'has_password' => $this->password !== null,
             ]
         );
 
-        $response = Http::asForm()->post($this->oauthTokenUrl, [
-            'grant_type' => 'client_credentials',
+        $request = Http::asForm();
+        $sslOptions = $this->sslOptions();
+
+        if (! empty($sslOptions)) {
+            $request = $request->withOptions($sslOptions);
+        }
+
+        $response = $request->post($this->oauthTokenUrl, array_filter([
+            'grant_type' => 'password',
             'client_id' => $this->clientId,
-            'client_secret' => $this->clientSecret,
-        ]);
+            'scope' => $this->scope,
+            'username' => $this->username,
+            'password' => $this->password,
+        ], static fn ($value) => $value !== null));
 
         if (! $response->successful()) {
             throw new TokenAcquisitionException(
@@ -166,8 +171,31 @@ final class OAuth2TokenManager implements OAuth2TokenManagerInterface
             Cache::put($this->tokenCacheKey, $dto->accessToken, $ttl);
         }
 
-        $this->logDb->debug('Access Token: ' . $dto->accessToken);
+        $this->logDb->debug('Access Token: '.$dto->accessToken);
+
         return $dto->accessToken;
+    }
+
+    /**
+     * mTLS options for the token request, using the standard Guzzle `cert` key
+     * (ADR-003). The p12 certificate path is emitted either bare or as a
+     * `[path, passphrase]` pair when a passphrase is configured. When no mTLS
+     * material is configured, an empty array is returned so the token request
+     * runs without client-certificate options.
+     *
+     * @return array<string, string|array{0: string, 1: string}>
+     */
+    private function sslOptions(): array
+    {
+        $options = [];
+
+        if ($this->certPath !== null) {
+            $options['cert'] = $this->certPassphrase !== null
+                ? [$this->certPath, $this->certPassphrase]
+                : $this->certPath;
+        }
+
+        return $options;
     }
 
     /**
@@ -193,18 +221,18 @@ final class OAuth2TokenManager implements OAuth2TokenManagerInterface
      * Keep the context for logging purposes.
      * Not really necessary, but let's do this through
      * the development lifecycle
-     *
-     * @return array
      */
     public function toLogContext(): array
     {
         return [
-            'oauth_token_url'  => $this->oauthTokenUrl,
-            'client_id'        => $this->clientId,
-            'token_cache_key'  => $this->tokenCacheKey,
+            'oauth_token_url' => $this->oauthTokenUrl,
+            'client_id' => $this->clientId,
+            'scope' => $this->scope,
+            'token_cache_key' => $this->tokenCacheKey,
             'token_ttl_buffer' => $this->tokenTtlBuffer,
-            'has_client_secret' => !empty($this->clientSecret),
-            'has_api_key'       => !empty($this->apiKey),
+            'has_username' => ! empty($this->username),
+            'has_password' => ! empty($this->password),
+            'has_cert_path' => ! empty($this->certPath),
         ];
     }
 }

@@ -1,6 +1,6 @@
 # Tech Context — ABSA API Hub
 
-> Technologies, dev setup, constraints, dependencies, tool usage. Last updated: 2026-09-08.
+> Technologies, dev setup, constraints, dependencies, tool usage. Last updated: 2026-10-06.
 
 ## 1. Stack
 - **Framework:** Laravel `^13.17` (`laravel/framework` locked).
@@ -30,9 +30,16 @@
 
 ## 4. Configuration
 - `config/absa.php`: `environment` (`ABSA_ENV`, default `sandbox`), `statements` block
-  (`base_url`, `api_key`, `client_id`, `client_secret`, `passphrase`, `cert_path`, `key_path`,
-  `retry_attempts`=3, `retry_delay_ms`=250, `oauth_token_url`, `token_cache_key`,
-  `token_ttl_buffer`=60, `audit_enabled`=true, `audit_queue`=default), `payshap`/`avs` placeholders.
+  (`base_url` — default `https://api.absa.africa/cheque-statements/v1.0`, `client_id`,
+  `passphrase`, `cert_path` — p12 default under `app/private/certs/private/absa/`,
+  `retry_attempts`=3, `retry_delay_ms`=250, `oauth_token_url` — default
+  `https://mtls.auth.absaaccess.africa/connect/token`, `scope` — default `bifrost-gateway`,
+  `username`, `password`, `token_cache_key`, `token_ttl_buffer`=60, `audit_enabled`=true,
+  `audit_queue`=default), `payshap`/`avs` placeholders. **No `client_secret` / `key_path` /
+  `api_key`** — the password grant does not use them and the p12 cert carries its own key.
+  `absa.statements.api_key` remains only as a **runtime** config slot (set by
+  `StatementService::resolveToken()`, read by `StatementsApiClient::withAuthorization()`);
+  there is no `ABSA_STATEMENTS_API_KEY` env var.
 - `config/db-logger.php` (db-logger), `config/logging.php` (`log_stack` channel), `config/sanctum.php`.
 - Other config: `app`, `auth`, `cache`, `database`, `filesystems`, `mail`, `queue`, `services`, `session`.
 

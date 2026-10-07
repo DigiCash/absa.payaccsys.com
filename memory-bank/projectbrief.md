@@ -1,8 +1,9 @@
 # Project Brief — ABSA API Hub (`absa84_api`)
 
 > Foundation document. Source of truth for project scope. Read first, every session.
-> Last updated: 2026-09-07. Phase: Early implementation — Statements API (DTO + transport +
-> application layers complete); all tests Pest-native (~116 tests); root docs refreshed.
+> Last updated: 2026-10-06. Phase: Early implementation — Statements API (DTO + transport +
+> application layers complete; **outbound auth now OAuth2 Resource Owner Password grant, 2026-10-06**);
+> all tests Pest-native; root docs refreshed.
 
 ## 1. What this project is
 A **Laravel 13 API application** (PHP 8.4, running in Docker) that acts as a **central API hub**
@@ -27,7 +28,8 @@ contract and exposes them to internal consumers (e.g. "Phoenix").
 
 ## 4. Source-of-truth hierarchy (binding — highest wins on conflict)
 1. Explicit developer instructions
-2. Approved architectural decisions (`Planning/99_Decisions/` ADRs — not yet created)
+2. Approved architectural decisions (`Planning/99_Decisions/` ADRs — **created**: ADR-001 external
+   auth architecture, ADR-002 transport placement, ADR-003 mTLS option keys)
 3. Approved project requirements (normalised specs in `Planning/03_APIS/`)
 4. Official ABSA source documentation (`_StatementsAPI_/`, `_PaysShap_/`, `_AVS_/`, `_DOCUMENTATION_/`, `_SWAGGER_/`, `_CERTS_/`) — **read-only**
 5. Existing application behaviour / code
@@ -36,7 +38,8 @@ contract and exposes them to internal consumers (e.g. "Phoenix").
 
 ## 5. Scope boundaries
 - **In scope now:** Statements API DTOs + HTTP transport layer (complete) + application layer
-  (OAuth2TokenManager, ApiAuditLogger, StatementService, facade controllers — complete); Pest-native
+  (OAuth2TokenManager — **Resource Owner Password grant + p12 mTLS since 2026-10-06**,
+  ApiAuditLogger, StatementService, facade controllers — complete); Pest-native
   test migration (complete); root docs (`PROJECT.md`/`README.md`) refreshed; planning/governance docs.
 - **Out of scope now:** PayShap, AVS, queue workers, CI pipeline (none exists).
 

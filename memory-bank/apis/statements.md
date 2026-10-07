@@ -1,7 +1,7 @@
 # API Integration — Statements & Transactions (active)
 
 > Additional context for the active domain integration. Source spec is authoritative.
-> Last updated: 2026-09-07.
+> Last updated: 2026-10-06.
 
 ## Source of truth
 - **Spec:** `_StatementsAPI_/Statements_Facade_API_Swagger_20250910.yml` (OpenAPI 3.0.1) — **read-only**.
@@ -37,9 +37,14 @@
 ## Transport status — COMPLETE (M0–M6, signed off 2026-09-01)
 - `StatementsApiClientInterface` (8 methods), `StatementsApiException`, `StatementsApiClientConfig` — done.
 - `StatementsApiClient` — done: happy + error paths, mTLS `sslOptions()` mapping + retry-on-5xx/429 (M5).
-- Auth (D1 resolved, ADR-001): OAuth 2.0 Client Credentials Grant via `OAuth2TokenManager` + static
-  `Authorization: Bearer {api_key}` fallback.
-- mTLS (D3 resolved, ADR-003): standard Guzzle `cert`/`ssl_key`.
+- Auth (D1 resolved, ADR-001; **grant updated 2026-10-06**): OAuth 2.0 **Resource Owner Password**
+  via `OAuth2TokenManager` — **no static key**; the bearer token reaches the transport via
+  `StatementService` → runtime config slot `absa.statements.api_key` → `withAuthorization()`.
+  Token endpoint: `https://mtls.auth.absaaccess.africa/connect/token` (mTLS).
+  Statements base: `https://api.absa.africa/cheque-statements/v1.0` (version prefix required —
+  without `/v1.0` the gateway 404s).
+- mTLS (D3 resolved, ADR-003; **p12-only since 2026-10-06**): single `.p12` cert →
+  Guzzle `cert` (no `ssl_key`).
 
 ## Application layer — COMPLETE (2026-09-03 / 2026-09-04)
 - `OAuth2TokenManager`, `ApiAuditLogger` + `AuditLogSanitizer` + queued `RecordApiAuditLog`,
@@ -52,5 +57,6 @@
 - No open transport/application questions for Statements.
 
 ## Next
-1. Harden/extend Statements as needed; keep the Pest suite green (currently 116/116).
+1. Harden/extend Statements as needed; keep the Pest suite green (full suite **116/116,
+   623 assertions** as of 2026-10-06; Statements suite 64/64).
 2. Then start PayShap, then AVS (mirror this structure in new namespaces).

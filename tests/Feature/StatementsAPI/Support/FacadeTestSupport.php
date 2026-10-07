@@ -45,7 +45,6 @@ final class FacadeTestSupport
 
         // Never touch mTLS material on disk inside feature tests.
         config()->set('absa.statements.cert_path', null);
-        config()->set('absa.statements.key_path', null);
         config()->set('absa.statements.passphrase', null);
 
         $tokenManager = new StubOAuth2TokenManager($token);

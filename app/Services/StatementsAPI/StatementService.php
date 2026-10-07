@@ -45,43 +45,32 @@ final class StatementService
 
     /**
      * Logger Name
-     *
-     * @var string
      */
     protected string $loggerName = 'ABSA API - StatementService';
+
     /**
      * The token resolved for the most recent operation (observability/tests).
-     *
-     * @var string|null
      */
     private ?string $resolvedToken = null;
 
     public function __construct(
         private readonly StatementsApiClientInterface $client,
         private readonly OAuth2TokenManagerInterface $tokenManager,
-    )
-    {
-
-    }
+    ) {}
 
     /**
      * Get Service Health
-     *
-     * @param GetHealthRequestDTO $request
-     * @return HealthResponseDTO
      */
     public function getHealth(GetHealthRequestDTO $request): HealthResponseDTO
     {
         $this->resolveToken();
+
         return $this->client->getHealth($request);
     }
 
     /**
      * Get Balances for all accounts.
      * Market availability: Pan-Africa
-     *
-     * @param GetBalancesRequestDTO $request
-     * @return BalancesReadResponseDTO
      */
     public function getBalances(GetBalancesRequestDTO $request): BalancesReadResponseDTO
     {
@@ -93,9 +82,6 @@ final class StatementService
     /**
      * Get Balances for a specific account.
      * Market availability: Pan-Africa
-     *
-     * @param GetAccountBalancesRequestDTO $request
-     * @return BalancesReadResponseDTO
      */
     public function getAccountBalances(GetAccountBalancesRequestDTO $request): BalancesReadResponseDTO
     {
@@ -107,9 +93,6 @@ final class StatementService
     /**
      * Get EOD Statements for account-id.
      * Market Availability: SA-only
-     *
-     * @param GetStatementsRequestDTO $request
-     * @return StatementReadResponseDTO
      */
     public function getStatements(GetStatementsRequestDTO $request): StatementReadResponseDTO
     {
@@ -121,9 +104,6 @@ final class StatementService
     /**
      * Get EOD Statement for account-id and statement-id.
      * Market Availability: SA-only
-     *
-     * @param GetStatementRequestDTO $request
-     * @return StatementReadResponseDTO
      */
     public function getStatement(GetStatementRequestDTO $request): StatementReadResponseDTO
     {
@@ -135,9 +115,6 @@ final class StatementService
     /**
      * Get EOD Transactions for account-id and statement-id.
      * Market Availability: SA-only
-     *
-     * @param GetStatementTransactionsRequestDTO $request
-     * @return TransactionReadResponseDTO
      */
     public function getStatementTransactions(GetStatementTransactionsRequestDTO $request): TransactionReadResponseDTO
     {
@@ -149,9 +126,6 @@ final class StatementService
     /**
      * Get All EOD Statements.
      * Market Availability: SA-only
-     *
-     * @param GetAllStatementsRequestDTO $request
-     * @return StatementReadResponseDTO
      */
     public function getAllStatements(GetAllStatementsRequestDTO $request): StatementReadResponseDTO
     {
@@ -163,9 +137,6 @@ final class StatementService
     /**
      * Get Today's Intra-Day Statement
      * Market Availability: All African Countries excluding
-     *
-     * @param GetIntraDayStatementRequestDTO $request
-     * @return TransactionReadResponseDTO
      */
     public function getIntraDayStatement(GetIntraDayStatementRequestDTO $request): TransactionReadResponseDTO
     {
@@ -178,7 +149,6 @@ final class StatementService
      * The token resolved for the most recent operation, or `null` when no
      * operation has run yet. Exposed so wiring / tests can confirm the active
      * credential that feeds the transport's `apiKey` seam.
-     * @return string|null
      */
     public function resolvedToken(): ?string
     {
@@ -187,12 +157,15 @@ final class StatementService
 
     /**
      * Resolve a valid bearer token from the credential manager before the
-     * outbound call executes (ADR-001). Any acquisition failure surfaces as a
-     * {@see StatementsApiException}-style typed error from the manager itself.
-     * @return void
+     * outbound call executes (ADR-001) and thread it into the runtime config
+     * slot the transport reads when building `Authorization: Bearer {token}`
+     * (`absa.statements.api_key`). Any acquisition failure surfaces as the
+     * manager's own `TokenAcquisitionException`.
      */
     private function resolveToken(): void
     {
         $this->resolvedToken = $this->tokenManager->getValidToken();
+
+        config()->set('absa.statements.api_key', $this->resolvedToken);
     }
 }

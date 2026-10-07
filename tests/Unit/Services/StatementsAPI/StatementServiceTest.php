@@ -19,7 +19,6 @@ use App\DTOs\StatementsAPI\Responses\Statements\StatementReadDataDTO;
 use App\DTOs\StatementsAPI\Responses\Statements\StatementReadResponseDTO;
 use App\DTOs\StatementsAPI\Responses\StatementTransactions\TransactionReadDataDTO;
 use App\DTOs\StatementsAPI\Responses\StatementTransactions\TransactionReadResponseDTO;
-use App\DTOs\StatementsAPI\Transport\StatementsApiClientConfig;
 use App\DTOs\StatementsAPI\Transport\StatementsApiException;
 use App\Services\StatementsAPI\Contracts\OAuth2TokenManagerInterface;
 use App\Services\StatementsAPI\StatementService;
@@ -70,9 +69,9 @@ function responseMap(): array
 }
 
 // ---------------------------------------------------------------------------
-// 1. Token resolution + injection into client config (apiKey seam, ADR-001)
+// 1. Token resolution + injection into the runtime config slot (ADR-001)
 // ---------------------------------------------------------------------------
-it('resolves a token via the manager and exposes it through the apiKey seam', function () {
+it('resolves a token via the manager and exposes it through the runtime config slot', function () {
     $tokenManager = new StubOAuth2TokenManager('token-abc-123');
     $client = new FakeStatementsApiClient(responseMap());
 
@@ -85,12 +84,8 @@ it('resolves a token via the manager and exposes it through the apiKey seam', fu
     expect($tokenManager->resolveCount)->toBe(1);
     expect($service->resolvedToken())->toBe('token-abc-123');
 
-    // The transport consumes the resolved token through `Config::apiKey`.
-    $config = StatementsApiClientConfig::fromConfig([
-        'base_url' => 'https://api.example.test',
-        'api_key' => $service->resolvedToken(),
-    ]);
-    expect($config->apiKey)->toBe('token-abc-123');
+    // The transport consumes the resolved token through the runtime config slot.
+    expect(config('absa.statements.api_key'))->toBe('token-abc-123');
 
     // The client received the correct request and returned the scripted DTO.
     expect($client->called)->toBe(['getHealth']);

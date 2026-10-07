@@ -25,7 +25,7 @@ as separate Laravel applications for each ABSA service.
 
 **Implementation status:** The Statements API integration is implemented
 across the DTO, transport and application layers and is covered by the Pest
-test suite (~116 tests / ~627 assertions, all hermetic). PayShap and AVS are
+test suite (~117 tests / ~636 assertions, all hermetic). PayShap and AVS are
 planned but not yet started.
 
 **Current development focus:** Completing and hardening the Statements API
@@ -92,7 +92,13 @@ Implementation status:
   retry-on-5xx/429) — **done**
 - Application layer (`OAuth2TokenManager`, `ApiAuditLogger`, `StatementService`,
   inbound facade controllers) — **done**
+- Outbound auth: OAuth2 **Resource Owner Password grant**
+  (`grant_type=password` with `client_id`/`scope`/`username`/`password` over
+  mTLS via a single p12 certificate; real ABSA credentials configured
+  2026-10-06) — **done**
 - Inbound HTTP facade exposed under `/api/v1/statements/*` (Sanctum-protected)
+  and upstream 4xx/5xx surfaced with descriptive, self-diagnosing errors —
+  **done**
 
 ---
 
@@ -138,7 +144,7 @@ its own namespace rather than sharing unproven abstractions.
 | --- | --- | --- |
 | HTTP facade | `app/Http/Controllers/StatementsAPI/` | Thin inbound adapters over `StatementService` |
 | Requests (validation) | `app/Http/Requests/StatementsAPI/` | Inbound validation for facade endpoints |
-| Application services | `app/Services/StatementsAPI/` | `OAuth2TokenManager`, `StatementService`, `AuditLogSanitizer`, contracts |
+| Application services | `app/Services/StatementsAPI/` | `OAuth2TokenManager` (OAuth2 Resource Owner Password grant, mTLS), `StatementService`, `AuditLogSanitizer`, contracts |
 | Middleware | `app/Http/Middleware/` | `ApiAuditLogger` (audit), `LogApiJourney` (request journey) |
 | Jobs | `app/Jobs/StatementsAPI/` | `RecordApiAuditLog` (queued audit persistence) |
 | DTO layer | `app/DTOs/StatementsAPI/` | Typed requests, responses, models, enums, errors |

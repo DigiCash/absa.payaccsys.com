@@ -26,6 +26,7 @@
 /storage/*.key
 /storage/pail
 /vendor
+/public/scratch
 /_AVS_
 /_PaysShap_
 /_StatementsAPI_

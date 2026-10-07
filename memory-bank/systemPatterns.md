@@ -1,7 +1,7 @@
 # System Patterns — ABSA API Hub
 
 > Architecture, key technical decisions, design patterns, component relationships, critical paths.
-> Last updated: 2026-09-03.
+> Last updated: 2026-10-06.
 
 ## 1. High-level architecture
 ```
@@ -10,7 +10,7 @@ Internal consumer
    ▼
 Hub routes (routes/api.php, /v1)
    ▼
-Inbound facade controller + StatementService (DRAFT)
+Inbound facade controller + StatementService
    ▼
 StatementsApiClientInterface  ──►  StatementsApiClient (Illuminate\Http\Client)
    ▲  (typed *RequestDTO)            │  outbound GET: path + query + ABSA headers + mTLS + Bearer
@@ -45,9 +45,11 @@ Callers depend on the **interface**, never on Guzzle/HttpClient. Transport detai
 - `StatementsApiClientInterface` — 8-method contract (fixed path).
 - `StatementsApiClientConfig` — immutable value object built from `config('absa.statements')`
   (`fromConfig()`; explicit-array override for hermetic tests).
-- `StatementsApiException` — typed transport error (`status` + decoded `ErrorResponseDTO`).
+- `StatementsApiException` — typed transport error (`status` + decoded `ErrorResponseDTO` +
+  `method`/`url`/`body` diagnostics; self-describing message for empty/non-JSON 4xx/5xx).
 - `StatementsApiClient` — concrete impl: `Http::baseUrl`/`timeout`/`withOptions` (mTLS) +
-  `Authorization: Bearer {apiKey}` + non-2xx → `StatementsApiException`.
+  `Authorization: Bearer {token}` read **dynamically at call time** from the runtime config slot
+  `absa.statements.api_key` + non-2xx → `StatementsApiException`.
 
 ## 5. Dual-database design
 - **Application DB:** PostgreSQL — MCP `postgres-switch-main`, db `absa_api` (audit logs).
@@ -60,9 +62,16 @@ Callers depend on the **interface**, never on Guzzle/HttpClient. Transport detai
 ## 6. Auth & config
 - Internal auth: **Laravel Sanctum** (`routes/api.php`: `POST /v1/login` issues token,
   `GET /v1/user` behind `auth:sanctum`).
-- ABSA config seam: `config('absa.statements')` → `base_url`, `api_key`, `client_id`,
-  `client_secret`, `passphrase`, `cert_path`, `key_path`, `retry_attempts` (3), `retry_delay_ms` (250).
-- `environment` = `ABSA_ENV` (default `sandbox`); base_url switches sandbox/production on it.
+- ABSA config seam: `config('absa.statements')` → `base_url`, `client_id`,
+  `passphrase`, `cert_path`, `retry_attempts` (3), `retry_delay_ms` (250), `oauth_token_url`,
+  `scope` (default `bifrost-gateway`), `username`, `password`, `token_cache_key`, `token_ttl_buffer`.
+  (No `api_key` env/credential — `absa.statements.api_key` is a **runtime** slot only.)
+- `environment` = `ABSA_ENV` (default `sandbox`); base_url no longer branches on it — it is a
+  direct env/default (`https://api.absa.africa/cheque-statements`).
+- **Outbound auth:** OAuth2 **Resource Owner Password grant** (`grant_type=password`, POST body
+  `client_id`, `scope`, `username`, `password`, `application/x-www-form-urlencoded`) to
+  `https://mtls.auth.absaaccess.africa/connect/token` over mTLS (p12 cert + passphrase). The same
+  p12 `cert` option is applied to Statements API calls via `sslOptions()`.
 
 ## 7. Critical implementation paths
 - **Adding a new endpoint:** spec → `*RequestDTO`/`*ResponseDTO` (+ enums/models) → add method to
@@ -82,11 +91,11 @@ Callers depend on the **interface**, never on Guzzle/HttpClient. Transport detai
 The transport layer (M0–M6) and the application layer (App-M1 → App-M4) are complete and tested.
 Components:
 
-- **`OAuth2TokenManager` — ✅ DONE (2026-09-03)** — `App\Services\StatementsAPI\OAuth2TokenManager`
+- **`OAuth2TokenManager` — ✅ DONE (2026-09-03, password-grant rework 2026-10-06)** — `App\Services\StatementsAPI\OAuth2TokenManager`
   (concrete) + `Contracts\OAuth2TokenManagerInterface` (`getValidToken(): string`). Resolves the ABSA
-  OAuth2 client-credentials token (cached in Cache for `expires_in - token_ttl_buffer`, floored at 0)
-  with a static `api_key` fallback; non-2xx/undecodable/no-credential → `TokenAcquisitionException`.
-  Resolves **D1 (Auth)** via **ADR-001**.
+  OAuth2 **Resource Owner Password** token (`grant_type=password` over mTLS, cached in Cache for
+  `expires_in - token_ttl_buffer`, floored at 0); non-2xx/undecodable/missing-credentials → `TokenAcquisitionException`.
+  **No static-key fallback.** Resolves **D1 (Auth)** via **ADR-001**.
 - **`ApiAuditLogger`** — ✅ DONE (2026-09-04) — writes audit/trace records to the MySQL logging DB
   (`mysql_fingo_logs` / `logging.logs`) for inbound facade calls and outbound ABSA calls.
 - **`StatementService`** — ✅ DONE (2026-09-04) — orchestrates: resolve token → build `*RequestDTO` → call

@@ -71,6 +71,6 @@ it('normalises a connection failure (status 0) to 502 with a fallback envelope',
     $this->getJson('/api/v1/statements/health')
         ->assertStatus(502)
         ->assertJson([
-            'error' => ['Code' => 'STATEMENTS_API_ERROR', 'Message' => 'Statements API error 0'],
+            'error' => ['Code' => 'STATEMENTS_API_ERROR', 'Message' => 'GET https://statements.test/v1/health failed to connect: boom'],
         ]);
 });
