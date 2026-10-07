@@ -206,6 +206,12 @@ transport's `Authorization: Bearer` header.
    `APP_URL` includes the `/api/v1` prefix so all request paths resolve, and
    `POSTMAN_COLLECTION/README.md` was expanded into a full usage guide (layout, auth, variables,
    troubleshooting).
+- **2026-10-06 (round 5, docs): inbound OpenAPI V3 documentation.** Added `dedoc/scramble`
+   `^0.13.47`; `config/scramble.php` (api_path `api`, bearer security strategy, docs UI gated to
+   local env); exported `docs/apis/statements/openapi.json` (10 operations). Response schemas
+   enriched via `app/Support/StatementsOpenApiSchemas.php` + `docs/apis/statements/enrich_openapi.php`
+   (verified envelope+item shapes; deep nested ABSA models documented as honest placeholders).
+   README/PROJECT.md link the spec. Full suite 117/117 (636); Pint clean.
 - **2026-10-06 (round 4, docs): `README.md` / `PROJECT.md` refreshed.** README now documents the
    outbound OAuth2 password grant; PROJECT.md test count updated to ~117/636 and the Statements
    status gained the outbound-auth + descriptive-error notes.

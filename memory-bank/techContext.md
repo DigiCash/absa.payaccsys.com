@@ -13,6 +13,8 @@
 - **Pest** `^5.1` (Pest ≥ 3.0 satisfied), **`laravel/pao`** `^1.1` (required), `nunomaduro/collision ^8.6`,
   `phpunit/phpunit` (locked), `fakerphp/faker ^1.23`, `mockery/mockery ^1.6`.
 - **`laravel/pint`** `^1.27` (formatter/linter), **`laravel/pail`** `^1.2.5` (log viewer).
+- **`dedoc/scramble`** `^0.13.47` — OpenAPI 3.1 docs auto-generation (`config/scramble.php`;
+  interactive UI at `/docs/api`, gated to local env; static export in `docs/apis/statements/`).
 - **Postman** (manual API testing): `POSTMAN_COLLECTION/` — collection, LOCAL environment and a
   usage guide (`README.md`) for exercising AUTH and the Statements facade (versioned from
   2026-09-08; `APP_URL` includes `/api/v1`; env vars: `APP_URL`, `USER_EMAIL`, `USER_PASSWORD`,

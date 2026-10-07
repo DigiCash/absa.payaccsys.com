@@ -1,0 +1,1100 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "ABSA API Hub",
+        "version": "1.0.0",
+        "description": "ABSA API Hub \u2014 internal HTTP boundary for ABSA banking capabilities. The Statements & Transactions facade lives under `\/v1\/statements\/*`. Every endpoint except `POST \/v1\/login` requires a Sanctum bearer token (`Authorization: Bearer <token>`), issued by `POST \/v1\/login`."
+    },
+    "servers": [
+        {
+            "url": "http:\/\/localhost:8000\/api"
+        }
+    ],
+    "security": [
+        {
+            "http": []
+        }
+    ],
+    "paths": {
+        "\/v1\/login": {
+            "post": {
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application\/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "email": {
+                                        "type": "string",
+                                        "format": "email"
+                                    },
+                                    "password": {
+                                        "type": "string"
+                                    }
+                                },
+                                "required": [
+                                    "email",
+                                    "password"
+                                ]
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application\/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "token_type": {
+                                            "type": "string",
+                                            "const": "Bearer"
+                                        },
+                                        "access_token": {
+                                            "type": "string"
+                                        }
+                                    },
+                                    "required": [
+                                        "token_type",
+                                        "access_token"
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "$ref": "#\/components\/responses\/ValidationException"
+                    }
+                },
+                "security": []
+            }
+        },
+        "\/v1\/user": {
+            "get": {
+                "responses": {
+                    "200": {
+                        "description": "`User`",
+                        "content": {
+                            "application\/json": {
+                                "schema": {
+                                    "$ref": "#\/components\/schemas\/User"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#\/components\/responses\/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "\/v1\/statements\/balances": {
+            "get": {
+                "operationId": "balances.index",
+                "summary": "Get Balances for all accounts.\nMarket availability: Pan-Africa",
+                "tags": [
+                    "Balances"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application\/json": {
+                                "schema": {
+                                    "$ref": "#\/components\/schemas\/BalancesResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#\/components\/responses\/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "\/v1\/statements\/accounts\/{accountId}\/balances": {
+            "get": {
+                "operationId": "balances.show",
+                "summary": "Get Balances for a specific account.\nMarket availability: Pan-Africa",
+                "tags": [
+                    "Balances"
+                ],
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "accountId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 255
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application\/json": {
+                                "schema": {
+                                    "$ref": "#\/components\/schemas\/BalancesResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#\/components\/responses\/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#\/components\/responses\/ValidationException"
+                    }
+                }
+            }
+        },
+        "\/v1\/statements\/health": {
+            "get": {
+                "operationId": "health.index",
+                "summary": "Return the health status",
+                "tags": [
+                    "Health"
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application\/json": {
+                                "schema": {
+                                    "$ref": "#\/components\/schemas\/Health"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#\/components\/responses\/AuthenticationException"
+                    }
+                }
+            }
+        },
+        "\/v1\/statements\/accounts\/{accountId}\/statements\/{statementId}\/transactions": {
+            "get": {
+                "operationId": "statementTransactions.index",
+                "summary": "Get EOD Transactions for account-id and statement-id.\n Market Availability: SA-only",
+                "tags": [
+                    "StatementTransactions"
+                ],
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "statementId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "accountId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "statementId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "pg",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "pgSize",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application\/json": {
+                                "schema": {
+                                    "$ref": "#\/components\/schemas\/TransactionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#\/components\/responses\/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#\/components\/responses\/ValidationException"
+                    }
+                }
+            }
+        },
+        "\/v1\/statements\/accounts\/{accountId}\/intraday-statement": {
+            "get": {
+                "operationId": "statementTransactions.intraday",
+                "summary": "Get Today's Intra-Day Statement\n Market Availability: All African Countries excluding",
+                "tags": [
+                    "StatementTransactions"
+                ],
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "accountId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "index",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 0
+                        }
+                    },
+                    {
+                        "name": "time",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ]
+                        }
+                    },
+                    {
+                        "name": "pg",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "pgSize",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application\/json": {
+                                "schema": {
+                                    "$ref": "#\/components\/schemas\/TransactionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#\/components\/responses\/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#\/components\/responses\/ValidationException"
+                    }
+                }
+            }
+        },
+        "\/v1\/statements": {
+            "get": {
+                "operationId": "statements.all",
+                "summary": "Get All EOD Statements.\n Market Availability: SA-only",
+                "tags": [
+                    "Statements"
+                ],
+                "parameters": [
+                    {
+                        "name": "fromStatementDateTime",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "toStatementDateTime",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "pg",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "pgSize",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application\/json": {
+                                "schema": {
+                                    "$ref": "#\/components\/schemas\/StatementResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#\/components\/responses\/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#\/components\/responses\/ValidationException"
+                    }
+                }
+            }
+        },
+        "\/v1\/statements\/accounts\/{accountId}\/statements": {
+            "get": {
+                "operationId": "statements.index",
+                "summary": "Get EOD Statements for account-id.\n Market Availability: SA-only",
+                "tags": [
+                    "Statements"
+                ],
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "accountId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "fromStatementDateTime",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "toStatementDateTime",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "string",
+                                "null"
+                            ],
+                            "format": "date-time"
+                        }
+                    },
+                    {
+                        "name": "pg",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    },
+                    {
+                        "name": "pgSize",
+                        "in": "query",
+                        "schema": {
+                            "type": [
+                                "integer",
+                                "null"
+                            ],
+                            "minimum": 1
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application\/json": {
+                                "schema": {
+                                    "$ref": "#\/components\/schemas\/StatementResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#\/components\/responses\/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#\/components\/responses\/ValidationException"
+                    }
+                }
+            }
+        },
+        "\/v1\/statements\/accounts\/{accountId}\/statements\/{statementId}": {
+            "get": {
+                "operationId": "statements.show",
+                "summary": "Get EOD Statement for account-id and statement-id.\n Market Availability: SA-only",
+                "tags": [
+                    "Statements"
+                ],
+                "parameters": [
+                    {
+                        "name": "accountId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "statementId",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "name": "accountId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 255
+                        }
+                    },
+                    {
+                        "name": "statementId",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "maxLength": 255
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "",
+                        "content": {
+                            "application\/json": {
+                                "schema": {
+                                    "$ref": "#\/components\/schemas\/StatementResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "$ref": "#\/components\/responses\/AuthenticationException"
+                    },
+                    "422": {
+                        "$ref": "#\/components\/responses\/ValidationException"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "http": {
+                "type": "http",
+                "scheme": "bearer"
+            }
+        },
+        "schemas": {
+            "User": {
+                "type": "object",
+                "properties": {
+                    "id": {
+                        "type": "integer"
+                    },
+                    "name": {
+                        "type": "string"
+                    },
+                    "email": {
+                        "type": "string"
+                    },
+                    "email_verified_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "created_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "updated_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "name",
+                    "email",
+                    "email_verified_at",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "User"
+            },
+            "Health": {
+                "type": "object",
+                "properties": {
+                    "status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "title": "Health"
+            },
+            "BalancesResponse": {
+                "type": "object",
+                "properties": {
+                    "Data": {
+                        "$ref": "#\/components\/schemas\/BalancesData"
+                    },
+                    "Links": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#\/components\/schemas\/Link"
+                        },
+                        "nullable": true
+                    },
+                    "Meta": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#\/components\/schemas\/Metadatum"
+                        },
+                        "nullable": true
+                    }
+                }
+            },
+            "BalancesData": {
+                "type": "object",
+                "properties": {
+                    "Balance": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#\/components\/schemas\/BalancesDetail"
+                        },
+                        "nullable": true
+                    }
+                }
+            },
+            "StatementResponse": {
+                "type": "object",
+                "properties": {
+                    "Data": {
+                        "$ref": "#\/components\/schemas\/StatementData"
+                    },
+                    "Links": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#\/components\/schemas\/Link"
+                        },
+                        "nullable": true
+                    },
+                    "Meta": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#\/components\/schemas\/Metadatum"
+                        },
+                        "nullable": true
+                    }
+                }
+            },
+            "StatementData": {
+                "type": "object",
+                "properties": {
+                    "Statement": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#\/components\/schemas\/StatementDetail"
+                        },
+                        "nullable": true
+                    }
+                }
+            },
+            "TransactionResponse": {
+                "type": "object",
+                "properties": {
+                    "Data": {
+                        "$ref": "#\/components\/schemas\/TransactionData"
+                    },
+                    "Links": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#\/components\/schemas\/Link"
+                        },
+                        "nullable": true
+                    },
+                    "Meta": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#\/components\/schemas\/Metadatum"
+                        },
+                        "nullable": true
+                    }
+                }
+            },
+            "TransactionData": {
+                "type": "object",
+                "properties": {
+                    "Transaction": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#\/components\/schemas\/TransactionDetail"
+                        },
+                        "nullable": true
+                    }
+                }
+            },
+            "Link": {
+                "type": "object",
+                "properties": {
+                    "Rel": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "Href": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "title": "Link"
+            },
+            "Metadatum": {
+                "type": "object",
+                "properties": {
+                    "Name": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "Value": {
+                        "description": "Metadata value (any type)."
+                    }
+                },
+                "title": "Metadatum"
+            },
+            "BalancesDetail": {
+                "type": "object",
+                "properties": {
+                    "AccountId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "Amount": {
+                        "$ref": "#\/components\/schemas\/CurrencyAmountSubType",
+                        "nullable": true
+                    },
+                    "LocalAmount": {
+                        "$ref": "#\/components\/schemas\/CurrencyAmountSubType",
+                        "nullable": true
+                    },
+                    "TotalAmount": {
+                        "$ref": "#\/components\/schemas\/CurrencyAndAmount",
+                        "nullable": true
+                    },
+                    "CreditDebitIndicator": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "String-backed enum; see ABSA source spec \/ App\\DTOs\\StatementsAPI\\Enums\\CreditDebitCode."
+                    },
+                    "Type": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "String-backed enum; see ABSA source spec \/ App\\DTOs\\StatementsAPI\\Enums\\ExternalBalanceType."
+                    },
+                    "DateTime": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "CreditLine": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#\/components\/schemas\/CreditLineTypeDetail"
+                        },
+                        "nullable": true
+                    }
+                },
+                "title": "BalancesDetail"
+            },
+            "StatementDetail": {
+                "type": "object",
+                "properties": {
+                    "AccountId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "StatementId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "StatementReference": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "Type": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "String-backed enum; see App\\DTOs\\StatementsAPI\\Enums\\StatementTypeCode."
+                    },
+                    "StartDateTime": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "EndDateTime": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "CreationDateTime": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "StatementDescription": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "nullable": true
+                    },
+                    "StatementFee": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#\/components\/schemas\/StatementFee"
+                        },
+                        "nullable": true
+                    },
+                    "StatementAmount": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#\/components\/schemas\/StatementAmount"
+                        },
+                        "nullable": true
+                    }
+                },
+                "title": "StatementDetail"
+            },
+            "TransactionDetail": {
+                "type": "object",
+                "properties": {
+                    "AccountId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "TransactionId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "TransactionReference": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "StatementReference": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "nullable": true
+                    },
+                    "CreditDebitIndicator": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "String-backed enum; see App\\DTOs\\StatementsAPI\\Enums\\CreditDebitCode."
+                    },
+                    "Status": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "String-backed enum; see App\\DTOs\\StatementsAPI\\Enums\\EntryStatusCode."
+                    },
+                    "BookingDateTime": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "ValueDate": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "TransactionInformation": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "Amount": {
+                        "$ref": "#\/components\/schemas\/CurrencyAndAmount",
+                        "nullable": true
+                    },
+                    "ChargeAmount": {
+                        "$ref": "#\/components\/schemas\/CurrencyAndAmount",
+                        "nullable": true
+                    },
+                    "BankTransactionCode": {
+                        "$ref": "#\/components\/schemas\/BankTransactionCodeStructure",
+                        "nullable": true
+                    },
+                    "ProprietaryBankTransactionCode": {
+                        "$ref": "#\/components\/schemas\/ProprietaryBankTransactionCodeStructure",
+                        "nullable": true
+                    },
+                    "Balance": {
+                        "$ref": "#\/components\/schemas\/TransactionCashBalance",
+                        "nullable": true
+                    },
+                    "SupplementaryData": {
+                        "$ref": "#\/components\/schemas\/SupplementaryData",
+                        "nullable": true
+                    }
+                },
+                "title": "TransactionDetail"
+            },
+            "CurrencyAmountSubType": {
+                "type": "object",
+                "description": "Exact properties per the ABSA Statements API source spec \u2014 see app\/DTOs\/StatementsAPI\/Models\/CurrencyAmountSubTypeDTO.php.",
+                "additionalProperties": []
+            },
+            "CurrencyAndAmount": {
+                "type": "object",
+                "description": "Exact properties per the ABSA Statements API source spec \u2014 see app\/DTOs\/StatementsAPI\/Models\/CurrencyAndAmountDTO.php.",
+                "additionalProperties": []
+            },
+            "CreditLineTypeDetail": {
+                "type": "object",
+                "description": "Exact properties per the ABSA Statements API source spec \u2014 see app\/DTOs\/StatementsAPI\/Models\/CreditLineTypeDetailDTO.php.",
+                "additionalProperties": []
+            },
+            "StatementFee": {
+                "type": "object",
+                "description": "Exact properties per the ABSA Statements API source spec \u2014 see app\/DTOs\/StatementsAPI\/Models\/StatementFeeDTO.php.",
+                "additionalProperties": []
+            },
+            "StatementAmount": {
+                "type": "object",
+                "description": "Exact properties per the ABSA Statements API source spec \u2014 see app\/DTOs\/StatementsAPI\/Models\/StatementAmountDTO.php.",
+                "additionalProperties": []
+            },
+            "BankTransactionCodeStructure": {
+                "type": "object",
+                "description": "Exact properties per the ABSA Statements API source spec \u2014 see app\/DTOs\/StatementsAPI\/Models\/BankTransactionCodeStructureDTO.php.",
+                "additionalProperties": []
+            },
+            "ProprietaryBankTransactionCodeStructure": {
+                "type": "object",
+                "description": "Exact properties per the ABSA Statements API source spec \u2014 see app\/DTOs\/StatementsAPI\/Models\/ProprietaryBankTransactionCodeStructureDTO.php.",
+                "additionalProperties": []
+            },
+            "TransactionCashBalance": {
+                "type": "object",
+                "description": "Exact properties per the ABSA Statements API source spec \u2014 see app\/DTOs\/StatementsAPI\/Models\/TransactionCashBalanceDTO.php.",
+                "additionalProperties": []
+            },
+            "SupplementaryData": {
+                "type": "object",
+                "description": "Exact properties per the ABSA Statements API source spec \u2014 see app\/DTOs\/StatementsAPI\/Models\/SupplementaryDataDTO.php.",
+                "additionalProperties": []
+            }
+        },
+        "responses": {
+            "ValidationException": {
+                "description": "Validation error",
+                "content": {
+                    "application\/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Errors overview."
+                                },
+                                "errors": {
+                                    "type": "object",
+                                    "description": "A detailed description of each field that failed validation.",
+                                    "additionalProperties": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            },
+                            "required": [
+                                "message",
+                                "errors"
+                            ]
+                        }
+                    }
+                }
+            },
+            "AuthenticationException": {
+                "description": "Unauthenticated",
+                "content": {
+                    "application\/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string",
+                                    "description": "Error overview."
+                                }
+                            },
+                            "required": [
+                                "message"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
