@@ -11,8 +11,8 @@ use App\DTOs\StatementsAPI\Requests\GetBalancesRequestDTO;
 use App\DTOs\StatementsAPI\Requests\GetHealthRequestDTO;
 use App\DTOs\StatementsAPI\Requests\GetIntraDayStatementRequestDTO;
 use App\DTOs\StatementsAPI\Requests\GetStatementRequestDTO;
-use App\DTOs\StatementsAPI\Requests\GetStatementTransactionsRequestDTO;
 use App\DTOs\StatementsAPI\Requests\GetStatementsRequestDTO;
+use App\DTOs\StatementsAPI\Requests\GetStatementTransactionsRequestDTO;
 use App\DTOs\StatementsAPI\Responses\Balances\BalancesReadResponseDTO;
 use App\DTOs\StatementsAPI\Responses\Health\HealthResponseDTO;
 use App\DTOs\StatementsAPI\Responses\Statements\StatementReadResponseDTO;
@@ -51,16 +51,15 @@ final class StatementsApiClient implements StatementsApiClientInterface
     /** Transient status codes that warrant a retry (server / rate-limit). */
     private const array RETRYABLE_STATUSES = [408, 429, 500, 502, 503, 504];
 
+    /** Maximum characters of a raw error body captured for diagnostics. */
+    private const int ERROR_BODY_MAX_LENGTH = 500;
+
     /**
      * Logger Name
-     *
-     * @var string
      */
     protected string $loggerName = 'ABSA API - StatementsApiClient';
 
-    public function __construct(private readonly StatementsApiClientConfig $config)
-    {
-    }
+    public function __construct(private readonly StatementsApiClientConfig $config) {}
 
     public function getHealth(GetHealthRequestDTO $request): HealthResponseDTO
     {
@@ -155,20 +154,19 @@ final class StatementsApiClient implements StatementsApiClientInterface
      *
      * @template T of FromArray
      *
-     * @param array<string, string> $path ordered path-param name => value
-     * @param array<string, mixed> $query query-string key => value
-     * @param array<string, string> $headers ABSA cross-cutting headers
-     * @param class-string<T> $responseClass
+     * @param  array<string, string>  $path  ordered path-param name => value
+     * @param  array<string, mixed>  $query  query-string key => value
+     * @param  array<string, string>  $headers  ABSA cross-cutting headers
+     * @param  class-string<T>  $responseClass
      * @return T
      */
     private function send(
         string $template,
-        array  $path,
-        array  $query,
-        array  $headers,
+        array $path,
+        array $query,
+        array $headers,
         string $responseClass,
-    ): FromArray
-    {
+    ): FromArray {
         // Log Request
         $this->logDb->debug('Sending Request...',
             [
@@ -181,7 +179,7 @@ final class StatementsApiClient implements StatementsApiClientInterface
                 'headers' => $headers,
                 'responseClass' => $responseClass,
                 'retryAttempts' => $this->config->retryAttempts,
-                'retryDelayMs' => $this->config->retryDelayMs
+                'retryDelayMs' => $this->config->retryDelayMs,
             ]
         );
 
@@ -194,10 +192,12 @@ final class StatementsApiClient implements StatementsApiClientInterface
             $request = $request->retry(
                 $this->config->retryAttempts,
                 $this->config->retryDelayMs,
-                fn(\Throwable $e): bool => $this->shouldRetry($e),
+                fn (\Throwable $e): bool => $this->shouldRetry($e),
                 throw: false,
             );
         }
+
+        $url = $this->requestUrl($template, $path);
 
         try {
             $response = $request->get($this->interpolatePath($template, $path), $query);
@@ -205,14 +205,21 @@ final class StatementsApiClient implements StatementsApiClientInterface
             throw new StatementsApiException(
                 status: 0,
                 error: null,
+                method: 'GET',
+                url: $url,
                 previous: $e,
             );
         }
 
-        if (!$response->successful()) {
+        if (! $response->successful()) {
+            $rawBody = $response->body();
+
             throw new StatementsApiException(
                 status: $response->status(),
                 error: $this->decodeError($response),
+                method: 'GET',
+                url: $url,
+                body: $rawBody === '' ? null : mb_substr($rawBody, 0, self::ERROR_BODY_MAX_LENGTH),
             );
         }
 
@@ -230,42 +237,49 @@ final class StatementsApiClient implements StatementsApiClientInterface
     }
 
     /**
-     * Prepend the configured `Authorization: Bearer {apiKey}` so a
-     * config-supplied token always wins over a request-supplied one.
+     * Prepend the resolved OAuth2 bearer token. The token is read from the
+     * runtime config slot `absa.statements.api_key` at call time — it is
+     * populated by `StatementService::resolveToken()` ahead of every outbound
+     * call — so the immutable transport config never holds a credential.
      *
-     * @param array<string, string> $headers
+     * @param  array<string, string>  $headers
      * @return array<string, string>
      */
     private function withAuthorization(array $headers): array
     {
-        if ($this->config->apiKey === null) {
+        $token = config('absa.statements.api_key');
+
+        if (! is_string($token) || $token === '') {
             return $headers;
         }
 
-        // Log Response
-        $this->logDb->debug('Auth Headers...',
-            [
-                'Authorization' => 'Bearer',
-                'API KEY' => $this->config->apiKey
-            ]
-        );
-
-        return array_merge($headers, ['Authorization' => 'Bearer ' . $this->config->apiKey]);
+        return array_merge($headers, ['Authorization' => 'Bearer '.$token]);
     }
 
     /**
      * Substitute each `{name}` placeholder with its URL-encoded value, using
      * the ordered path-param array so the template and the values stay aligned.
      *
-     * @param array<string, string> $path
+     * @param  array<string, string>  $path
      */
     private function interpolatePath(string $template, array $path): string
     {
         foreach ($path as $name => $value) {
-            $template = str_replace('{' . $name . '}', rawurlencode((string)$value), $template);
+            $template = str_replace('{'.$name.'}', rawurlencode((string) $value), $template);
         }
 
         return $template;
+    }
+
+    /**
+     * Resolve the absolute outbound URL (base + interpolated path) so error
+     * diagnostics can report exactly which endpoint failed.
+     *
+     * @param  array<string, string>  $path
+     */
+    private function requestUrl(string $template, array $path): string
+    {
+        return rtrim($this->config->baseUrl, '/').'/'.ltrim($this->interpolatePath($template, $path), '/');
     }
 
     /**

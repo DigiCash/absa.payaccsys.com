@@ -47,6 +47,9 @@ It uses standard Laravel concepts to do all of the above:
   `RecordApiAuditLog`).
 - **HTTP client abstractions** for the outbound ABSA transport
   (`app/DTOs/StatementsAPI/Transport/`), with mTLS and retry-on-5xx/429.
+- **OAuth2 Resource Owner Password grant** for outbound ABSA authentication
+  (`OAuth2TokenManager` — token cached + auto-refreshed, mTLS client
+  certificate).
 - **Pest** for a fully hermetic test suite (no DB/network in unit tests).
 
 ## Getting Started
