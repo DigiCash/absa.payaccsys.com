@@ -89,7 +89,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{APP_URL}}/statements/balances",
+                            "raw": "{{APP_URL}}/statements/balances?pg={{pg}}&pgSize={{pgSize}}",
                             "host": [
                                 "{{APP_URL}}"
                             ],
@@ -98,6 +98,16 @@
                                 "v1",
                                 "statements",
                                 "balances"
+                            ],
+                            "query": [
+                                {
+                                    "key": "pg",
+                                    "value": "{{pg}}"
+                                },
+                                {
+                                    "key": "pgSize",
+                                    "value": "{{pgSize}}"
+                                }
                             ]
                         }
                     },
@@ -109,7 +119,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/balances",
+                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/balances?pg={{pg}}&pgSize={{pgSize}}",
                             "host": [
                                 "{{APP_URL}}"
                             ],
@@ -120,6 +130,16 @@
                                 "accounts",
                                 "{accountId}",
                                 "balances"
+                            ],
+                            "query": [
+                                {
+                                    "key": "pg",
+                                    "value": "{{pg}}"
+                                },
+                                {
+                                    "key": "pgSize",
+                                    "value": "{{pgSize}}"
+                                }
                             ]
                         }
                     },
@@ -131,7 +151,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{APP_URL}}/statements",
+                            "raw": "{{APP_URL}}/statements?pg={{pg}}&pgSize={{pgSize}}",
                             "host": [
                                 "{{APP_URL}}"
                             ],
@@ -139,6 +159,16 @@
                                 "api",
                                 "v1",
                                 "statements"
+                            ],
+                            "query": [
+                                {
+                                    "key": "pg",
+                                    "value": "{{pg}}"
+                                },
+                                {
+                                    "key": "pgSize",
+                                    "value": "{{pgSize}}"
+                                }
                             ]
                         }
                     },
@@ -150,7 +180,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/statements",
+                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/statements?pg={{pg}}&pgSize={{pgSize}}",
                             "host": [
                                 "{{APP_URL}}"
                             ],
@@ -161,6 +191,16 @@
                                 "accounts",
                                 "{accountId}",
                                 "statements"
+                            ],
+                            "query": [
+                                {
+                                    "key": "pg",
+                                    "value": "{{pg}}"
+                                },
+                                {
+                                    "key": "pgSize",
+                                    "value": "{{pgSize}}"
+                                }
                             ]
                         }
                     },
@@ -195,7 +235,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/statements/{statementId}/transactions",
+                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/statements/{statementId}/transactions?pg={{pg}}&pgSize={{pgSize}}",
                             "host": [
                                 "{{APP_URL}}"
                             ],
@@ -208,6 +248,16 @@
                                 "statements",
                                 "{statementId}",
                                 "transactions"
+                            ],
+                            "query": [
+                                {
+                                    "key": "pg",
+                                    "value": "{{pg}}"
+                                },
+                                {
+                                    "key": "pgSize",
+                                    "value": "{{pgSize}}"
+                                }
                             ]
                         }
                     },
@@ -219,7 +269,7 @@
                         "method": "GET",
                         "header": [],
                         "url": {
-                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/intraday-statement",
+                            "raw": "{{APP_URL}}/statements/accounts/{accountId}/intraday-statement?pg={{pg}}&pgSize={{pgSize}}",
                             "host": [
                                 "{{APP_URL}}"
                             ],
@@ -230,6 +280,16 @@
                                 "accounts",
                                 "{accountId}",
                                 "intraday-statement"
+                            ],
+                            "query": [
+                                {
+                                    "key": "pg",
+                                    "value": "{{pg}}"
+                                },
+                                {
+                                    "key": "pgSize",
+                                    "value": "{{pgSize}}"
+                                }
                             ]
                         }
                     },
@@ -254,6 +314,18 @@
                 }
             },
             "response": []
+        }
+    ],
+    "variable": [
+        {
+            "key": "pg",
+            "value": "1",
+            "type": "string"
+        },
+        {
+            "key": "pgSize",
+            "value": "100",
+            "type": "string"
         }
     ],
     "auth": {

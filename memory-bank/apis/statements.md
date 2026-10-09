@@ -28,6 +28,11 @@
 ## Key facts
 - Every response envelope shares `{ Data, Links, Meta }`; `Data` holds one typed collection
   (`Balance[]`, `Statement[]`, `Transaction[]`, `IntraDayStatementDetail[]`, `File[]`).
+- **Pagination:** every listing endpoint (`/balances`, `/accounts/{id}/balances`,
+  `/accounts/{id}/statements`, `/statements`, `/accounts/{id}/statements/{id}/transactions`,
+  intraday) accepts `pg` / `pgSize` (validated `integer, min:1`) forwarded to ABSA; the gateway
+  returns `Links` (Self/First/Last) + `Meta` (`TotalRecords`, `TotalPages`, `PageSize`).
+  `PaginationQuery` also carries intraday `index` / `time` cursors.
 - Spec has **no** `components/parameters` block — params reconstructed from `$ref` names.
 - Cross-cutting request headers on every operation: `Authorization`,
   `X-Absa-ClientInteractionId`, `X-Absa-Initiating-UserId`,

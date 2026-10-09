@@ -17,7 +17,7 @@ variables (base URL, credentials, access token) the requests reference.
 
 | File | What it is |
 | --- | --- |
-| `ABSA API.postman_collection.json` | The collection — the requests, grouped into folders (AUTH, StatementsAPI). |
+| `ABSA API.postman_collection.json` | The collection — the requests, grouped into folders (AUTH, StatementsAPI), plus `pg` / `pgSize` pagination variables. |
 | `ABSA API LOCAL.postman_environment.json` | A Postman environment — the variables used by the requests. |
 | `README.md` | This guide. |
 
@@ -58,6 +58,31 @@ variables (base URL, credentials, access token) the requests reference.
 real values before sending (accounts/statements existent in the ABSA
 environment you are pointing at). They are plain text placeholders, not
 Postman collection variables.
+
+### Pagination (`pg` / `pgSize`)
+
+Every listing request (**Get Balances**, **Get Account Balance**, **Get All
+Statements**, **Get Account Statements**, **Get Statement Transactions**, **Get
+Intraday Statement**) sends two query parameters:
+
+| Param | Collection variable | Default | Meaning |
+| --- | --- | --- | --- |
+| `pg` | `{{pg}}` | `1` | Page number (1-based; ABSA rejects `pg < 1`). |
+| `pgSize` | `{{pgSize}}` | `100` | Page size (ABSA rejects `pgSize < 1`). |
+
+`{{pg}}` and `{{pgSize}}` are **collection-level variables**, so they apply to
+every listing request out of the box. To page: edit the request's query params
+before sending, or override the collection variables (e.g. add `pg`/`pgSize`
+to the active environment) to change the default for all requests.
+
+ABSA's response always returns the pagination metadata:
+
+- `Links` — `Self`, `First`, `Last` hrefs (including the `pg`/`pgSize` query).
+- `Meta` — `TotalRecords`, `TotalPages`, `PageSize`.
+
+For example, `Get Balances?pg=2&pgSize=50` requests page 2 with 50 results per
+page, and the response `Links`/`Meta` describe page 1 (First), page 2 (Self)
+and the last page.
 
 ### Environment variables (`ABSA API LOCAL`)
 

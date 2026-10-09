@@ -48,6 +48,18 @@ the wire → 404s). Next outward steps remain PayShap / AVS.
   tests / 65 assertions (`tests/Feature/StatementsAPI/*`).
 
 ## Recent changes (per planning docs; verify before relying on)
+- 2026-10-06 (**round 7, same day): Postman collection exposes pagination.** All 6 listing requests
+  in `POSTMAN_COLLECTION/ABSA API.postman_collection.json` (balances ×2, statements ×2, transactions,
+  intraday) now send `pg`/`pgSize` from collection-level variables (`pg=1`, `pgSize=100`);
+  `POSTMAN_COLLECTION/README.md` documents the query params, defaults, and the `Links`/`Meta`
+  response metadata.
+- 2026-10-06 (**round 6, same day): balances pagination wired.** Live ABSA balances responses
+  confirmed `Links`/`Meta` pagination (`pg`/`pgSize`). `GetBalancesRequestDTO` +
+  `GetAccountBalancesRequestDTO` now carry optional `PaginationQuery`; inbound
+  `GetAccountBalancesRequest` validates `pg`/`pgSize`; new `GetBalancesRequest` Form Request wired
+  into `BalancesController::index()` (previously `index()` built a bare DTO → pagination was
+  silently dropped). DTO hydration + feature tests added (5). Full suite **122/122 (649
+  assertions)**; OpenAPI spec regenerated + re-enriched (pg/pgSize now documented on balances).
 - 2026-10-06 (**round 5, same day): inbound OpenAPI V3 documentation.** Added `dedoc/scramble`
   `^0.13.47` (Composer; auto-generates OpenAPI 3.1 from controllers/Form Requests/routes).
   Published to `config/scramble.php` (api_path `api`, `security_strategy` =

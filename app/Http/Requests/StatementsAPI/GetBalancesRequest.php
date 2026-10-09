@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\StatementsAPI;
 
-use App\DTOs\StatementsAPI\Requests\GetAccountBalancesRequestDTO;
+use App\DTOs\StatementsAPI\Requests\GetBalancesRequestDTO;
 use App\DTOs\StatementsAPI\Requests\Query\PaginationQuery;
 
 /**
- * Validates GET /api/v1/statements/accounts/{accountId}/balances.
+ * Validates GET /api/v1/statements/balances.
  *
  * Optional paging: `pg` / `pgSize` (forwarded to the ABSA balances operation,
  * which returns `Links`/`Meta` pagination metadata).
  */
-final class GetAccountBalancesRequest extends AbstractStatementsRequest
+final class GetBalancesRequest extends AbstractStatementsRequest
 {
     /**
      * @return array<string, mixed>
@@ -21,19 +21,15 @@ final class GetAccountBalancesRequest extends AbstractStatementsRequest
     public function rules(): array
     {
         return [
-            'accountId' => ['required', 'string', 'max:255'],
             'pg' => ['nullable', 'integer', 'min:1'],
             'pgSize' => ['nullable', 'integer', 'min:1'],
         ];
     }
 
-    public function dto(): GetAccountBalancesRequestDTO
+    public function dto(): GetBalancesRequestDTO
     {
-        $validated = $this->validated();
-
-        return new GetAccountBalancesRequestDTO(
-            accountId: (string) $validated['accountId'],
-            pagination: $this->pagination($validated),
+        return new GetBalancesRequestDTO(
+            pagination: $this->pagination($this->validated()),
             headers: $this->absaHeaders(),
         );
     }

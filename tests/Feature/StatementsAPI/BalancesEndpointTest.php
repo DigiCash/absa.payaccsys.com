@@ -94,3 +94,45 @@ it('maps an upstream failure on account balances onto the error envelope', funct
             'error' => ['Code' => 'RESOURCE_NOT_FOUND', 'Message' => 'no such account'],
         ]);
 });
+
+it('forwards pg/pgSize pagination on the all-accounts balances call', function (): void {
+    Http::fake([
+        'https://statements.test/v1/balances*' => Http::response(['Data' => ['Balance' => []]], 200),
+    ]);
+
+    Sanctum::actingAs(User::factory()->make());
+
+    $this->getJson('/api/v1/statements/balances?pg=2&pgSize=50')
+        ->assertOk();
+
+    Http::assertSent(function (Request $request): bool {
+        return str_contains($request->url(), 'https://statements.test/v1/balances')
+            && str_contains($request->url(), 'pg=2')
+            && str_contains($request->url(), 'pgSize=50');
+    });
+});
+
+it('forwards pg/pgSize pagination on the account balances call', function (): void {
+    Http::fake([
+        'https://statements.test/v1/accounts/acc-123/balances*' => Http::response(['Data' => ['Balance' => []]], 200),
+    ]);
+
+    Sanctum::actingAs(User::factory()->make());
+
+    $this->getJson('/api/v1/statements/accounts/acc-123/balances?pg=1&pgSize=25')
+        ->assertOk();
+
+    Http::assertSent(function (Request $request): bool {
+        return str_contains($request->url(), 'https://statements.test/v1/accounts/acc-123/balances')
+            && str_contains($request->url(), 'pg=1')
+            && str_contains($request->url(), 'pgSize=25');
+    });
+});
+
+it('rejects invalid balances pagination values with 422', function (): void {
+    Sanctum::actingAs(User::factory()->make());
+
+    $this->getJson('/api/v1/statements/balances?pg=0')->assertStatus(422);
+    $this->getJson('/api/v1/statements/balances?pgSize=abc')->assertStatus(422);
+    $this->getJson('/api/v1/statements/accounts/acc-123/balances?pgSize=-5')->assertStatus(422);
+});

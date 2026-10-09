@@ -4,23 +4,27 @@ declare(strict_types=1);
 
 namespace App\DTOs\StatementsAPI\Requests;
 
+use App\DTOs\StatementsAPI\Requests\Query\PaginationQuery;
 use App\DTOs\StatementsAPI\Support\BaseDto;
 
 /**
  * GetAccountBalances — GET /accounts/{accountId}/balances.
+ * Optional paging via `pg` / `pgSize` (ABSA returns `Links`/`Meta` pagination
+ * metadata on this operation).
  */
 final readonly class GetAccountBalancesRequestDTO extends BaseDto
 {
     public function __construct(
         public readonly string $accountId,
+        public readonly ?PaginationQuery $pagination = null,
         public readonly ?AbsaRequestHeaders $headers = null,
-    ) {
-    }
+    ) {}
 
     public static function fromArray(array $data): static
     {
-        return new static(
+        return new self(
             accountId: (string) $data['accountId'],
+            pagination: isset($data['pagination']) ? PaginationQuery::fromArray($data['pagination']) : null,
             headers: isset($data['headers']) ? AbsaRequestHeaders::fromArray($data['headers']) : null,
         );
     }
@@ -42,15 +46,15 @@ final readonly class GetAccountBalancesRequestDTO extends BaseDto
     }
 
     /**
-     * @return array<string, mixed>
+     * @return array<string, int|string>
      */
     public function query(): array
     {
-        return [];
+        return $this->pagination?->toArray() ?? [];
     }
 
     /**
-     * @return array{path: array<string, string>, query: array<string, mixed>, headers: array<string, string>}
+     * @return array{path: array<string, string>, query: array<string, int|string>, headers: array<string, string>}
      */
     public function toArray(): array
     {

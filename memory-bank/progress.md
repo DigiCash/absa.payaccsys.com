@@ -206,6 +206,15 @@ transport's `Authorization: Bearer` header.
    `APP_URL` includes the `/api/v1` prefix so all request paths resolve, and
    `POSTMAN_COLLECTION/README.md` was expanded into a full usage guide (layout, auth, variables,
    troubleshooting).
+- **2026-10-06 (round 7, same day): Postman collection exposes pagination.** All 6 listing
+   requests now carry `pg`/`pgSize` (collection vars `pg=1`/`pgSize=100`); README documents the
+   pagination section.
+- **2026-10-06 (round 6, same day): balances pagination wired.** Live balances data proved ABSA
+   paginates `/balances` + `/accounts/{id}/balances` via `pg`/`pgSize` (returned in `Links`/`Meta`).
+   Request DTOs + inbound Form Requests now forward `PaginationQuery` (new `GetBalancesRequest` for
+   the list endpoint; `GetAccountBalancesRequest` gained `pg`/`pgSize` rules). 5 tests added
+   (2 DTO hydration + 3 feature incl. 422 validation). Full suite **122/122 (649 assertions)**;
+   OpenAPI spec regenerated and re-enriched.
 - **2026-10-06 (round 5, docs): inbound OpenAPI V3 documentation.** Added `dedoc/scramble`
    `^0.13.47`; `config/scramble.php` (api_path `api`, bearer security strategy, docs UI gated to
    local env); exported `docs/apis/statements/openapi.json` (10 operations). Response schemas

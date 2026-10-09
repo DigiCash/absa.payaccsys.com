@@ -169,7 +169,7 @@ it('getBalances returns a BalancesReadResponseDTO from GET /balances', function 
     ], 200));
 
     $result = new StatementsApiClient(statementsConfig())
-        ->getBalances(new GetBalancesRequestDTO(absaHeaders()));
+        ->getBalances(new GetBalancesRequestDTO(headers: absaHeaders()));
 
     expect($result)->toBeInstanceOf(BalancesReadResponseDTO::class);
     expect($result->Data->Balance[0]->AccountId)->toBe('1234567890');
@@ -192,7 +192,7 @@ it('getAccountBalances interpolates the accountId path param', function () {
     ], 200));
 
     $result = new StatementsApiClient(statementsConfig())
-        ->getAccountBalances(new GetAccountBalancesRequestDTO('ACC-1', absaHeaders()));
+        ->getAccountBalances(new GetAccountBalancesRequestDTO('ACC-1', headers: absaHeaders()));
 
     expect($result)->toBeInstanceOf(BalancesReadResponseDTO::class);
     expect($result->Data->Balance[0]->AccountId)->toBe('ACC-1');
