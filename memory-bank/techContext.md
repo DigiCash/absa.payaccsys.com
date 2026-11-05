@@ -1,6 +1,6 @@
 # Tech Context — ABSA API Hub
 
-> Technologies, dev setup, constraints, dependencies, tool usage. Last updated: 2026-10-06.
+> Technologies, dev setup, constraints, dependencies, tool usage. Last updated: 2026-11-02.
 
 ## 1. Stack
 - **Framework:** Laravel `^13.17` (`laravel/framework` locked).
@@ -25,10 +25,16 @@
   `https://github.com/DigiCash/laravel-payaccsys-db-logger.git` (declared in composer `repositories`).
   `ext-pdo` is the only platform ext declared.
 
-## 3. Databases (MCP, read-only by default)
-- `postgres-switch-main` → db `absa_api` (application/audit).
-- `mysql-monolith` → db `logging`, table `logs` (MySQL 8.0.42, central logging).
+## 3. Databases
+- **App connection `pgsql_main` → db `absa_api`** (host `switch-database`, schema `public`): the real
+  Laravel DB (`users`, `jobs`, `cache`, `api_audit_logs`, …). Read it via container SQL
+  (`docker exec absa84_api php artisan tinker --execute ...`) — **MCP `postgres-switch-main` does NOT
+  see it**: that MCP source points to the legacy PayAccSys switch DB (`merchant_*`/`settlement_*`/…
+  tables, no Laravel tables).
+- MCP `mysql-monolith` → db `logging`, table `logs` (MySQL 8.0.42, central logging).
 - `.env.example` default `DB_CONNECTION=sqlite` (local dev default; production uses the above).
+- **Audit persistence is async:** `QUEUE_CONNECTION=database`, jobs table on `pgsql_main` — without
+  an always-on `queue:work` the `RecordApiAuditLog` jobs queue up and `api_audit_logs` stays empty.
 
 ## 4. Configuration
 - `config/absa.php`: `environment` (`ABSA_ENV`, default `sandbox`), `statements` block
@@ -49,12 +55,15 @@
 - Namespace `App\` → `app/` (PSR-4): `App\Http\Controllers`, `App\Models`, `App\Providers`,
   plus custom `App\Support\` and `App\Traits\`.
 - Custom: `app/Support/DatabaseLogProxy.php`, `app/Traits/InteractsWithDatabaseLog.php`.
-- **Application layer — COMPLETE (2026-09-03 / 2026-09-04):**
+- **Application layer — COMPLETE (2026-09-03 / 2026-09-04; `ApiAuditLogger` wired 2026-11-02):**
   `App\Services\StatementsAPI\OAuth2TokenManager` + `Contracts\OAuth2TokenManagerInterface`,
   `App\Services\StatementsAPI\StatementService`, `App\Http\Middleware\ApiAuditLogger`,
   `App\Services\StatementsAPI\Support\AuditLogSanitizer`, queued
   `App\Jobs\StatementsAPI\RecordApiAuditLog`, and `App\Http\Controllers\StatementsAPI\`
   + Form Requests under `App\Http\Requests\StatementsAPI\` (all implemented + tested).
+  `ApiAuditLogger` is registered in the `api` middleware group in `bootstrap/app.php` and honours
+  `config('absa.statements.audit_enabled')` (default `true`); its job writes sanitized rows to
+  `api_audit_logs` on the **PostgreSQL** `pgsql_main` connection.
 - Migrations: `create_users_table`, `create_cache_table`, `create_jobs_table`,
   `create_personal_access_tokens_table`, `create_api_audit_logs`, `add_environment_to_api_audit_logs_table`.
 - Routes: `routes/api.php` (`POST /api/v1/login` Sanctum token, `GET /api/v1/user` `auth:sanctum`);

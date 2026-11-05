@@ -6,9 +6,8 @@ use App\Jobs\StatementsAPI\RecordApiAuditLog;
 use App\Services\StatementsAPI\Support\AuditLogSanitizer;
 use App\Traits\InteractsWithDatabaseLog;
 use Closure;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Middleware that records every outbound call to the api_audit_logs table via a queued job.
@@ -20,23 +19,22 @@ class ApiAuditLogger
 
     /**
      * Logger Name
-     *
-     * @var string
      */
     protected string $loggerName = 'ABSA API - ApiAuditLogger';
 
     /**
      * Handle an incoming request.
      *
-     * @param  Closure(Request): (Response|RedirectResponse)  $next
-     * @return Response|RedirectResponse
+     * @param  Closure(Request): Response  $next
      */
-    public function handle($request, Closure $next)
+    public function handle($request, Closure $next): Response
     {
         $response = $next($request);
 
-        // Record the request/response for audit logging
-        $this->recordRequest($request, $response);
+        // Record the request/response for audit logging unless disabled.
+        if (config('absa.statements.audit_enabled', true)) {
+            $this->recordRequest($request, $response);
+        }
 
         return $response;
     }
@@ -47,12 +45,12 @@ class ApiAuditLogger
      */
     private function recordRequest($request, $response): void
     {
-        $sanitizer = new AuditLogSanitizer;
-
-        $sanitizedRequest = $sanitizer->sanitize($request->headers->all(), $request->request->all());
-        $sanitizedResponse = $sanitizer->sanitizeResponse($response);
-
         try {
+            $sanitizer = new AuditLogSanitizer;
+
+            $sanitizedRequest = $sanitizer->sanitize($request->headers->all(), $request->request->all());
+            $sanitizedResponse = $sanitizer->sanitizeResponse($response);
+
             // Dispatch the audit record job for async processing
             RecordApiAuditLog::dispatch(
                 correlationId: $request->header('X-Request-ID') ?? $request->getRequestUri(),

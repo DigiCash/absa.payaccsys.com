@@ -1,6 +1,6 @@
 # Progress — ABSA API Hub
 
-> What works, what's left, current status, known issues, decision evolution. Last updated: 2026-10-06.
+> What works, what's left, current status, known issues, decision evolution. Last updated: 2026-11-02.
 
 ## Overall status
 **Phase 0 (Bootstrap/Discovery) → early implementation.** The Phase 0 proposal
@@ -36,6 +36,13 @@ transport's `Authorization: Bearer` header.
   `StatementService::resolveToken()` → runtime config slot `absa.statements.api_key` →
   `StatementsApiClient::withAuthorization()` (`Bearer {token}`). Real creds in `.env`;
   `.env.example` synced. `OAuth2TokenManagerTest` is 6 tests / 22 assertions.
+- **2026-11-02 — `ApiAuditLogger` now wired + toggle implemented (bug fix).** The middleware was
+  implemented + tested but **never registered** in the request pipeline (`bootstrap/app.php` appended
+  only `LogApiJourney` to the `api` group), so no audit rows were written. Fix: appended
+  `ApiAuditLogger::class` to the `api` middleware group (verified via `route:list -vv`) and implemented
+  the previously-missing `audit_enabled` guard in `handle()` (defaults `true`). Tests: placeholder
+  replaced by real `Queue::assertNotPushed` / `assertPushed` toggle tests — middleware suite now
+  **8 tests / 35 assertions** (full suite not re-run that day).
 - **Statements DTO layer** — implemented under `app/DTOs/StatementsAPI/` (~40 files):
   - `Support/` (Arrayable, FromArray, BaseDto, StatementsApiClientInterface)
   - `Enums/` (10), `Errors/` (ErrorResponseDTO, ErrorDetailDTO)
@@ -163,6 +170,11 @@ transport's `Authorization: Bearer` header.
 - CI pipeline (none exists) — future, not Phase 1.
 
 ## Known issues / risks
+- **R-2 (2026-11-02): no queue worker → `api_audit_logs` stays empty (verified).** Middleware dispatch
+  works (`jobs` table had 12× pending `RecordApiAuditLog`, 0 attempts, `failed_jobs` 0) but
+  `QUEUE_CONNECTION=database` needs an always-on `php artisan queue:work` to process them; audit rows
+  only appear once a worker runs. Also confirmed MCP `postgres-switch-main` is the legacy switch DB —
+  the app DB (`pgsql_main`/`absa_api`) must be queried via container SQL.
 - **R-1:** host PHP 8.2.31 vs required 8.4 — must always run in the container.
 - **Q-1:** `laravel/boost` recommended by README but not installed.
 - **D1 RESOLVED** (ADR-001, 2026-09-01); **D3 RESOLVED** (ADR-003, 2026-09-01).
@@ -252,6 +264,25 @@ transport's `Authorization: Bearer` header.
    credentials are missing (no fallback). `OAuth2TokenManagerTest` is 6 tests / 22 assertions;
    full Statements suite **64/64 (299 assertions)**; **full Pest suite 116/116 (623 assertions)**;
    `php -l` + Pint clean.
+- **2026-11-02: `ApiAuditLogger` wiring bug diagnosed + fixed.** The middleware was implemented +
+   tested (2026-09-04) but **never registered** in the `api` middleware group (`bootstrap/app.php`
+   only appended `LogApiJourney`), so no audit rows were written. Registered `ApiAuditLogger::class`
+   in `bootstrap/app.php` + implemented the missing `audit_enabled` toggle in `handle()`; middleware
+   suite 8 tests / 35 assertions green (`php -l` + Pint clean, `route:list -vv` verified).
+- **2026-11-02 (round 2, same day): `sanitizeResponse()` `TypeError` on `JsonResponse` fixed.** The
+   middleware + `AuditLogSanitizer::sanitizeResponse()` accepted only `Illuminate\Http\Response`, but
+   controllers emit `response()->json()` (`Illuminate\Http\JsonResponse`) → runtime `TypeError` that
+   broke real API responses (`AuditLogSanitizer.php` line 50). Widened type hints to the common base
+   `Symfony\Component\HttpFoundation\Response` in both `sanitizeResponse()` and middleware `handle()`;
+   moved sanitization under the `try/catch` so audit failures never break responses. Added JsonResponse
+   regression tests (sanitizer unit + middleware feature). Combined 18 tests / 84 assertions green
+   (`php -l` + Pint clean).
+- **2026-11-02 (round 3, same day): `api_audit_logs` empty diagnosis — missing queue worker.** Rows 0 in
+   `api_audit_logs`, 12 queued `RecordApiAuditLog` jobs (default queue, 0 attempts), `failed_jobs` 0,
+   no worker process in the container → `QUEUE_CONNECTION=database` jobs were never processed. Fix is
+   operational (`php artisan queue:work` / supervisor). Also established that MCP `postgres-switch-main`
+   points at the legacy PayAccSys switch DB (~150 tables, no Laravel tables) rather than the app's
+   `pgsql_main`/`absa_api` — app DB is read via container SQL.
 
 ## Guardrails in force (G1–G10, from the proposal)
 G1 no source-doc mutation · G2 no DB write without approval · G3 `.env`/secrets protection ·

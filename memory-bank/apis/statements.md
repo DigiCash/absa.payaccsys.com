@@ -1,7 +1,7 @@
 # API Integration — Statements & Transactions (active)
 
 > Additional context for the active domain integration. Source spec is authoritative.
-> Last updated: 2026-10-06.
+> Last updated: 2026-11-02.
 
 ## Source of truth
 - **Spec:** `_StatementsAPI_/Statements_Facade_API_Swagger_20250910.yml` (OpenAPI 3.0.1) — **read-only**.
@@ -53,10 +53,14 @@
 - mTLS (D3 resolved, ADR-003; **p12-only since 2026-10-06**): single `.p12` cert →
   Guzzle `cert` (no `ssl_key`).
 
-## Application layer — COMPLETE (2026-09-03 / 2026-09-04)
+## Application layer — COMPLETE (2026-09-03 / 2026-09-04; **`ApiAuditLogger` wired 2026-11-02**)
 - `OAuth2TokenManager`, `ApiAuditLogger` + `AuditLogSanitizer` + queued `RecordApiAuditLog`,
   `StatementService`, inbound facade controllers + Form Requests, `routes/statements.php`
   (Sanctum-protected `api/v1/statements/*`). All covered by hermetic Pest tests.
+- `ApiAuditLogger` is registered in the `api` middleware group in `bootstrap/app.php` (was previously
+  unwired — fixed 2026-11-02) and honours `config('absa.statements.audit_enabled')` (default `true`).
+  Its `RecordApiAuditLog` job writes sanitized rows to `api_audit_logs` on the `pgsql_main`
+  (PostgreSQL) connection — a queue worker must be running for rows to land.
 
 ## Open questions
 - (D1 auth, D2 structure, D3 TLS — all resolved; D2: transport in `App\DTOs\StatementsAPI\Transport\`,
@@ -64,6 +68,7 @@
 - No open transport/application questions for Statements.
 
 ## Next
-1. Harden/extend Statements as needed; keep the Pest suite green (full suite **116/116,
-   623 assertions** as of 2026-10-06; Statements suite 64/64).
+1. Harden/extend Statements as needed; keep the Pest suite green (full suite **122/122,
+   649 assertions** as of 2026-10-06; Statements suite 64/64; `ApiAuditLogger` middleware suite
+   8 tests / 35 assertions as of 2026-11-02 — full suite not re-run that day).
 2. Then start PayShap, then AVS (mirror this structure in new namespaces).

@@ -2,13 +2,14 @@
 
 use App\DTOs\StatementsAPI\Transport\StatementsApiException;
 use App\DTOs\StatementsAPI\Transport\TokenAcquisitionException;
+use App\Http\Middleware\ApiAuditLogger;
+use App\Http\Middleware\LogApiJourney;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use App\Http\Middleware\LogApiJourney;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -27,6 +28,7 @@ return Application::configure(basePath: dirname(__DIR__))
         );
         $middleware->api(append: [
             LogApiJourney::class,
+            ApiAuditLogger::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

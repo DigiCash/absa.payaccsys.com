@@ -1,9 +1,10 @@
 # Project Brief — ABSA API Hub (`absa84_api`)
 
 > Foundation document. Source of truth for project scope. Read first, every session.
-> Last updated: 2026-10-06. Phase: Early implementation — Statements API (DTO + transport +
+> Last updated: 2026-11-02. Phase: Early implementation — Statements API (DTO + transport +
 > application layers complete; **outbound auth now OAuth2 Resource Owner Password grant, 2026-10-06**);
-> all tests Pest-native; root docs refreshed.
+> all tests Pest-native; root docs refreshed. **2026-11-02: `ApiAuditLogger` middleware was previously
+> unwired — now registered in the `api` middleware group + `audit_enabled` toggle implemented.**
 
 ## 1. What this project is
 A **Laravel 13 API application** (PHP 8.4, running in Docker) that acts as a **central API hub**
@@ -33,7 +34,9 @@ contract and exposes them to internal consumers (e.g. "Phoenix").
 3. Approved project requirements (normalised specs in `Planning/03_APIS/`)
 4. Official ABSA source documentation (`_StatementsAPI_/`, `_PaysShap_/`, `_AVS_/`, `_DOCUMENTATION_/`, `_SWAGGER_/`, `_CERTS_/`) — **read-only**
 5. Existing application behaviour / code
-6. Database evidence (read-only via MCP: `mysql-monolith`, `postgres-switch-main`)
+6. Database evidence (read-only via MCP: `mysql-monolith` = logging DB; `postgres-switch-main` =
+   legacy PayAccSys switch DB — **not** the Laravel `absa_api`; the app DB `pgsql_main`/`absa_api` is
+   queried via container SQL)
 7. Agent assumptions — **never promoted silently to requirements**
 
 ## 5. Scope boundaries

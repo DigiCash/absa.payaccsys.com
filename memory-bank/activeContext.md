@@ -1,7 +1,7 @@
 # Active Context — ABSA API Hub
 
 > Current focus, recent changes, next steps, open decisions. Update after significant changes.
-> Last updated: 2026-10-06.
+> Last updated: 2026-11-02.
 
 ## Current focus
 **ABSA Auth updated to OAuth2 Resource Owner Password grant — COMPLETE (2026-10-06).** ABSA issued
@@ -35,6 +35,26 @@ the wire → 404s). Next outward steps remain PayShap / AVS.
   tests (`OAuth2TokenManagerTest`, 22 assertions).
 - **App-M2 — `ApiAuditLogger` middleware — DONE** (2026-09-04): `AuditLogSanitizer` + queued
   `RecordApiAuditLog`. 14 tests / 69 assertions.
+- **2026-11-02 — `ApiAuditLogger` wiring bug FIXED**: the middleware was implemented + tested but was
+  **never registered in the request pipeline** (`bootstrap/app.php` only appended `LogApiJourney` to the
+  `api` group), so no audit rows were written. Fix: appended `ApiAuditLogger::class` to the `api`
+  middleware group (verified via `route:list -vv`), and implemented the previously-missing
+  `audit_enabled` toggle (`config('absa.statements.audit_enabled')`) in `handle()`. Replaced the
+  placeholder test with real toggle tests (`Queue::assertNotPushed` / `assertPushed`). Middleware suite
+  now 8 tests / 35 assertions.
+- **2026-11-02 (round 2, same day) — `sanitizeResponse()` `TypeError` on `JsonResponse` FIXED**:
+  controllers return `response()->json()` → `Illuminate\Http\JsonResponse`, but `ApiAuditLogger::handle()`
+  and `AuditLogSanitizer::sanitizeResponse()` accepted only `Illuminate\Http\Response` → runtime
+  `TypeError` in the middleware. Widened both to the common base **`Symfony\Component\HttpFoundation\Response`**
+  and moved sanitization inside the job-dispatch `try/catch` so an audit failure can never break the
+  client response. Added JsonResponse regression tests to both suites. Middleware suite now 9 tests,
+  sanitizer 9 tests (18 combined / 84 assertions green, `php -l` + Pint clean).
+- **2026-11-02 (round 3, same day) — `api_audit_logs` STILL empty → diagnosis: NO QUEUE WORKER.**
+  Verified: `api_audit_logs` = 0 rows, `jobs` = 12× `RecordApiAuditLog` (default queue, 0 attempts),
+  `failed_jobs` = 0, no `queue:work` process in the container. So dispatch works but nothing consumes
+  the `database` queue. **Fix is operational:** run `docker exec absa84_api php artisan queue:work`
+  (or supervisor). Also corrected a wrong assumption: MCP `postgres-switch-main` points at the legacy
+  switch DB, not the app's `pgsql_main`/`absa_api`.
 - **App-M3 — `StatementService` — DONE** (2026-09-04): final, orchestrates the 8 operations;
   constructor-injects `StatementsApiClientInterface` + `OAuth2TokenManagerInterface`; resolves the
   bearer token ahead of every call (private `resolveToken()` → `getValidToken()`, exposed via

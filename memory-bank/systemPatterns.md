@@ -1,7 +1,7 @@
 # System Patterns — ABSA API Hub
 
 > Architecture, key technical decisions, design patterns, component relationships, critical paths.
-> Last updated: 2026-10-06.
+> Last updated: 2026-11-02.
 
 ## 1. High-level architecture
 ```
@@ -52,7 +52,11 @@ Callers depend on the **interface**, never on Guzzle/HttpClient. Transport detai
   `absa.statements.api_key` + non-2xx → `StatementsApiException`.
 
 ## 5. Dual-database design
-- **Application DB:** PostgreSQL — MCP `postgres-switch-main`, db `absa_api` (audit logs).
+- **Application DB:** PostgreSQL — Laravel connection **`pgsql_main`** (host `switch-database`, db
+  `absa_api`, schema `public`) — holds `api_audit_logs` (audit rows) and `jobs`. **Query it inside the
+  container** (`docker exec absa84_api php artisan tinker --execute ...` / `migrate:status`). MCP
+  `postgres-switch-main` is a **different database** — the legacy PayAccSys switch DB
+  (`merchant_*`/`settlement_*`/`switchresponse`, ~150 tables) — the Laravel tables are NOT there.
 - **Operational/audit logging DB:** MySQL 8.0.42 — MCP `mysql-monolith`, db `logging`, table `logs`.
 - Logging via `payaccsys/laravel-db-logger` (private VCS) + `app/Support/DatabaseLogProxy.php`
   (forwards to `Log::channel('log_stack')`, injects true caller file/line + logger `name`) and
@@ -96,8 +100,13 @@ Components:
   OAuth2 **Resource Owner Password** token (`grant_type=password` over mTLS, cached in Cache for
   `expires_in - token_ttl_buffer`, floored at 0); non-2xx/undecodable/missing-credentials → `TokenAcquisitionException`.
   **No static-key fallback.** Resolves **D1 (Auth)** via **ADR-001**.
-- **`ApiAuditLogger`** — ✅ DONE (2026-09-04) — writes audit/trace records to the MySQL logging DB
-  (`mysql_fingo_logs` / `logging.logs`) for inbound facade calls and outbound ABSA calls.
+- **`ApiAuditLogger`** — ✅ DONE (2026-09-04; **wired into the request pipeline 2026-11-02**) — records
+  inbound facade calls to the `api_audit_logs` table on the application **PostgreSQL** connection
+  (`pgsql_main` — **not** MySQL) via the queued `RecordApiAuditLog` job; payloads/headers are sanitized by
+  `AuditLogSanitizer` first. Registered in the `api` middleware group in `bootstrap/app.php` (with
+  `LogApiJourney`); honours `config('absa.statements.audit_enabled')` (default `true`).
+  **Rows appear only when a queue worker runs** (`QUEUE_CONNECTION=database` → `jobs` table on
+  `pgsql_main`; `php artisan queue:work`) — dispatch alone does NOT write audit rows.
 - **`StatementService`** — ✅ DONE (2026-09-04) — orchestrates: resolve token → build `*RequestDTO` → call
   `StatementsApiClientInterface` → decode `*ResponseDTO` / surface `StatementsApiException`.
 - **Inbound facade controllers** (`App\Http\Controllers\StatementsAPI\`) — thin HTTP adapters over

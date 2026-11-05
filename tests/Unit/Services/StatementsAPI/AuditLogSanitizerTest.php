@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\StatementsAPI;
 
 use App\Services\StatementsAPI\Support\AuditLogSanitizer;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Tests\TestCase;
 
@@ -173,4 +174,22 @@ it('sanitizes a non-JSON response', function (): void {
     expect($sanitized['status'])->toBe(500);
     expect($sanitized['headers']['content-type'])->toBe(['text/plain']);
     expect($sanitized['body'])->toBe('Internal Server Error');
+});
+
+it('sanitizes a JsonResponse (as produced by response()->json())', function (): void {
+    $sanitizer = new AuditLogSanitizer;
+
+    $response = new JsonResponse([
+        'status' => 'success',
+        'api_key' => 'secret',
+        'data' => 'value',
+    ], 200);
+
+    $sanitized = $sanitizer->sanitizeResponse($response);
+
+    expect($sanitized['status'])->toBe(200);
+    expect($sanitized['headers']['content-type'][0] ?? null)->toBe('application/json');
+    expect($sanitized['body']['status'])->toBe('success');
+    expect($sanitized['body']['api_key'])->toBe('***REDACTED***');
+    expect($sanitized['body']['data'])->toBe('value');
 });

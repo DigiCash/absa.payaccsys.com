@@ -50,12 +50,62 @@ it('dispatches an audit job when processing a request', function (): void {
     });
 });
 
-it('is instantiable and respects the audit_enabled flag', function (): void {
-    // This test assumes a future implementation of audit_enabled flag
-    // For now, just verify that the middleware exists and can be instantiated
-    $middleware = new ApiAuditLogger;
+it('handles a JsonResponse (controller response()->json) without TypeError', function (): void {
+    Queue::fake();
 
-    expect($middleware)->toBeInstanceOf(ApiAuditLogger::class);
+    $middleware = new ApiAuditLogger;
+    $request = Request::create('/health');
+    $request->headers->set('X-Request-ID', 'json-request-123');
+
+    $response = response()->json(['status' => 'ok', 'api_key' => 'sensitive'], 200);
+
+    $result = $middleware->handle($request, fn () => $response);
+
+    // The JsonResponse must flow through unchanged (audit failure must never break the response).
+    expect($result)->toBe($response);
+
+    Queue::assertPushed(RecordApiAuditLog::class, function ($job) {
+        expect($job->correlationId)->toBe('json-request-123');
+        expect($job->responseStatus)->toBe(200);
+        expect($job->sanitizedResponse['body']['api_key'])->toBe('***REDACTED***');
+
+        return true;
+    });
+});
+
+it('does not dispatch an audit job when audit_enabled is false', function (): void {
+    Queue::fake();
+    config()->set('absa.statements.audit_enabled', false);
+
+    try {
+        $middleware = new ApiAuditLogger;
+        $request = Request::create('/health');
+        $request->headers->set('X-Request-ID', 'disabled-request-123');
+
+        $response = new Response('OK', 200);
+
+        $result = $middleware->handle($request, fn () => $response);
+
+        expect($result)->toBe($response);
+        Queue::assertNotPushed(RecordApiAuditLog::class);
+    } finally {
+        config()->set('absa.statements.audit_enabled', true);
+    }
+});
+
+it('dispatches an audit job when audit_enabled is true', function (): void {
+    Queue::fake();
+    config()->set('absa.statements.audit_enabled', true);
+
+    $middleware = new ApiAuditLogger;
+    $request = Request::create('/health');
+    $request->headers->set('X-Request-ID', 'enabled-request-456');
+
+    $response = new Response('OK', 200);
+
+    $middleware->handle($request, fn () => $response);
+
+    Queue::assertPushed(RecordApiAuditLog::class);
 });
 
 it('handles a request with no sensitive data', function (): void {

@@ -2,7 +2,7 @@
 
 namespace App\Services\StatementsAPI\Support;
 
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Redacts secrets and PII before the audit row is written.
