@@ -92,7 +92,7 @@
     "repositories": [
         {
             "type": "git",
-            "url": "https://github.com/DigiCash/laravel-payaccsys-db-logger.git"
+            "url": "github.com/DigiCash/laravel-payaccsys-db-logger.git"
         }
     ]
 }
