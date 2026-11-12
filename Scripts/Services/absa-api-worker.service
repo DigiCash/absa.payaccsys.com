@@ -1,0 +1,25 @@
+[Unit]
+Description=Laravel Queue Worker for ABSA API request logging service
+After=network.target
+
+[Service]
+User=ec2-user
+Group=apache
+Restart=always
+RestartSec=5
+MemoryMax=150M
+MemoryHigh=130M
+WorkingDirectory=/var/www/AbsaApi/current/
+ExecStart=/usr/bin/php artisan queue:work --timeout=1200 --sleep=3 --tries=3 --max-jobs=50 --max-time=1800 --memory=128 --verbose
+StandardOutput=file:/var/www/AbsaApi/storage/logs/absa-api-logging.log
+StandardError=file:/var/www/AbsaApi/storage/logs/absa-api-logging-error.log
+SyslogIdentifier=laravel-queue-absa-api-logging
+
+# Limit CPU consumption to maximum 40% of a single core
+CPUQuota=40%
+
+# Stop process fork-bomb attacks or thread bloating
+TasksMax=5
+
+[Install]
+WantedBy=multi-user.target
